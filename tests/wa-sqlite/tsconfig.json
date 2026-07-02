@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2024",
-    "lib": ["ES2024"],
+    "lib": [
+      "ES2024"
+    ],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": true,
@@ -36,10 +38,20 @@
         }
       }
     ],
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
   },
-  "include": ["test"],
-  "exclude": ["node_modules", "**/dist", "**/node_modules/.pnpm"],
+  "include": [
+    "test"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "**/node_modules/.pnpm"
+  ],
   "references": [
     {
       "path": "../../packages/@livestore/wa-sqlite"
