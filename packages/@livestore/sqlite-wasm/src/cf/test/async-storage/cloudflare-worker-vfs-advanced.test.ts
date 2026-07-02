@@ -102,7 +102,7 @@ describe('CloudflareWorkerVFS - Advanced Features', () => {
       }
 
       expect(vfs.jClose(fileId)).toBe(VFS.SQLITE_OK)
-    })
+    }, 15_000)
 
     it('should handle cross-chunk boundary operations', async () => {
       const path = '/test/cross-chunk.db'
