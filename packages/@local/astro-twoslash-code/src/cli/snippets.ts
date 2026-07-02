@@ -110,6 +110,7 @@ import { Cli, NodeFileSystemWithWatch } from '@livestore/utils/node'
 import type { LineOwnerMarker, LineOwnerMetadata, TwoslashRuntimeOptions } from '../expressive-code.ts'
 import { createExpressiveCodeConfig, normalizeRuntimeOptions } from '../expressive-code.ts'
 import { resolveProjectPaths, type TwoslashProjectPaths } from '../project-paths.ts'
+import { createSnippetManifestConfigHash } from '../snippet-render-policy.ts'
 import type { SnippetBundle } from '../vite/snippet-graph.ts'
 import { buildSnippetBundle, __internal as snippetGraphInternal } from '../vite/snippet-graph.ts'
 
@@ -142,6 +143,18 @@ export class SnippetBuildError extends Schema.TaggedError<SnippetBuildError>()('
 }) {}
 
 const hashString = (value: string): string => crypto.createHash('sha256').update(value).digest('hex')
+
+const parsePositiveInteger = (value: string | undefined): number | null => {
+  if (value === undefined || value.trim().length === 0) return null
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) === true && parsed > 0 ? parsed : null
+}
+
+const resolveSnippetRenderConcurrency = (): number => {
+  const configured = parsePositiveInteger(process.env.LS_SNIPPET_RENDER_CONCURRENCY)
+  if (configured !== null) return configured
+  return 1
+}
 
 /**
  * Returns the Twoslash language id inferred from a filename.
@@ -918,6 +931,20 @@ const sanitizeRenderedHtml = (html: string): string => {
   return html.replace(/<figcaption[^>]*>[\s\S]*?<\/figcaption>/g, '')
 }
 
+const prepareSyntaxOnlyCode = (content: string): string => {
+  const lines = sanitizeSnippetContent(content)
+    .replace(/\r?\n/g, '\n')
+    .split('\n')
+    .filter((line) => isCutMarkerLine(line) === false)
+
+  while (lines.length > 0 && lines[lines.length - 1]?.length === 0) {
+    lines.pop()
+  }
+
+  const code = lines.join('\n')
+  return code.endsWith('\n') === true ? code : `${code}\n`
+}
+
 /**
  * Normalises the emitted Twoslash tooltip helper that ships with Expressive Code.
  * The upstream script uses `@floating-ui/dom` to position tooltips. We intercept
@@ -1178,6 +1205,24 @@ type TManifestEntry = {
   bundleHash: string
 }
 
+type TBuildSnippetResult = {
+  artifactEntry: TSnippetManifest['entries'][number]
+  rendered: boolean
+}
+
+type TRenderSnippetContext = {
+  canonicalFiles: TVirtualFileRecord[]
+  byRelativePath: Map<string, TVirtualFileRecord>
+}
+
+const createRenderSnippetContext = (bundle: ReturnType<typeof buildSnippetBundle>): TRenderSnippetContext => {
+  const canonicalFiles = createVirtualFiles(bundle.files, bundle.fileOrder)
+  return {
+    canonicalFiles,
+    byRelativePath: new Map(canonicalFiles.map((file) => [file.relativePath, file])),
+  }
+}
+
 type TPreviousManifest = {
   entries: Map<string, TManifestEntry>
 }
@@ -1190,12 +1235,12 @@ const renderSnippet = (
   renderer: TExpressiveRenderer,
   bundle: ReturnType<typeof buildSnippetBundle>,
   focusFilename: string,
+  context: TRenderSnippetContext = createRenderSnippetContext(bundle),
 ): Effect.Effect<TRenderedSnippet, SnippetBuildError> =>
   Effect.tryPromise({
     try: async () => {
-      const canonicalFiles = createVirtualFiles(bundle.files, bundle.fileOrder)
-      const focusRecord = canonicalFiles.find((file) => file.relativePath === focusFilename)
-      const virtualFiles = remapVirtualPathsForFocus(canonicalFiles, focusFilename)
+      const focusRecord = context.byRelativePath.get(focusFilename)
+      const virtualFiles = remapVirtualPathsForFocus(context.canonicalFiles, focusFilename)
       const focusVirtualPath = resolveFocusVirtualPath(virtualFiles, focusFilename)
 
       const snippetFiles = virtualFiles.map((file) => ({
@@ -1261,6 +1306,42 @@ const renderSnippet = (
           }),
   }).pipe(
     Effect.withSpan(`renderSnippet:${focusFilename}`, {
+      attributes: { filename: focusFilename },
+    }),
+  )
+
+const renderSyntaxSnippet = (
+  renderer: TExpressiveRenderer,
+  bundle: ReturnType<typeof buildSnippetBundle>,
+  focusFilename: string,
+  context: TRenderSnippetContext = createRenderSnippetContext(bundle),
+): Effect.Effect<TRenderedSnippet, SnippetBuildError> =>
+  Effect.tryPromise({
+    try: async () => {
+      const focusRecord = context.byRelativePath.get(focusFilename)
+      const source = focusRecord?.focusContent ?? bundle.files[focusFilename]?.content ?? ''
+      const language = guessLanguage(focusFilename)
+      const renderResult = await renderer.ec.render({
+        code: prepareSyntaxOnlyCode(source),
+        language,
+      })
+
+      return {
+        html: sanitizeRenderedHtml(toHtml(renderResult.renderedGroupAst)),
+        language,
+        meta: '',
+        diagnostics: [],
+        styles: Array.from(renderResult.styles),
+      } satisfies TRenderedSnippet
+    },
+    catch: (cause) =>
+      new SnippetBuildError({
+        message: `Failed to render syntax-only snippet for ${focusFilename}`,
+        cause,
+        entry: bundle.entryFilePath,
+      }),
+  }).pipe(
+    Effect.withSpan(`renderSyntaxSnippet:${focusFilename}`, {
       attributes: { filename: focusFilename },
     }),
   )
@@ -1443,12 +1524,14 @@ const buildSnippetsInternal = ({ paths, runtimeOptions }: ResolvedBuildOptions) 
     }
 
     const { renderer, configHash } = yield* loadEcRenderer(paths, runtimeOptions)
-    const previousManifest = yield* loadPreviousManifest(fs, paths, configHash)
+    const manifestConfigHash = createSnippetManifestConfigHash(configHash)
+    const previousManifest = yield* loadPreviousManifest(fs, paths, manifestConfigHash)
     const previousEntries = previousManifest?.entries ?? new Map<string, TManifestEntry>()
-    const artifactEntries: Array<TSnippetManifest['entries'][number]> = []
-    let renderedCount = 0
+    const renderConcurrency = resolveSnippetRenderConcurrency()
 
-    yield* Effect.log(`Rendering ${snippetEntries.length} snippet bundles`)
+    yield* Effect.log(
+      `Rendering ${snippetEntries.length} snippet bundles with concurrency ${renderConcurrency}; support files use syntax highlighting`,
+    )
 
     const buildSnippet = (entry: TSnippetEntry) =>
       Effect.gen(function* () {
@@ -1506,21 +1589,29 @@ const buildSnippetsInternal = ({ paths, runtimeOptions }: ResolvedBuildOptions) 
           const cachedArtifactPath = path.join(paths.cacheRoot, cachedEntry.artifactPath)
           const cachedArtifactExists = yield* fs.exists(cachedArtifactPath)
           if (cachedArtifactExists === true) {
-            artifactEntries.push({
-              entryFile: cachedEntry.entryFile,
-              mainFilename: cachedEntry.mainFilename,
-              artifactPath: cachedEntry.artifactPath,
-              bundleHash: cachedEntry.bundleHash,
-            })
-            return
+            return {
+              artifactEntry: {
+                entryFile: cachedEntry.entryFile,
+                mainFilename: cachedEntry.mainFilename,
+                artifactPath: cachedEntry.artifactPath,
+                bundleHash: cachedEntry.bundleHash,
+              },
+              rendered: false,
+            }
           }
         }
 
         yield* Effect.log(`Rendering snippet bundle for ${entry.entryPath}`)
 
         const renderedSnippets: Record<string, TRenderedSnippet> = {}
+        const renderContext = createRenderSnippetContext(bundle)
         for (const filename of bundle.fileOrder) {
-          const rendered = yield* renderSnippet(renderer, bundle, filename)
+          const shouldRenderTwoslash = filename === bundle.mainFileRelativePath
+          const rendered = yield* (
+            shouldRenderTwoslash === true
+              ? renderSnippet(renderer, bundle, filename, renderContext)
+              : renderSyntaxSnippet(renderer, bundle, filename, renderContext)
+          )
           if (rendered.html === null && rendered.diagnostics.length > 0) {
             yield* Effect.logWarning(
               `Twoslash pre-rendering skipped for ${entry.entryPath}: ${rendered.diagnostics[0]}`,
@@ -1583,26 +1674,29 @@ const buildSnippetsInternal = ({ paths, runtimeOptions }: ResolvedBuildOptions) 
           ),
         )
 
-        artifactEntries.push({
-          entryFile: artifact.entryFile,
-          mainFilename: artifact.mainFilename,
-          artifactPath: path.relative(paths.cacheRoot, artifactPath).replace(/\\/g, '/'),
-          bundleHash: artifact.bundleHash,
-        })
-
-        renderedCount += 1
+        return {
+          artifactEntry: {
+            entryFile: artifact.entryFile,
+            mainFilename: artifact.mainFilename,
+            artifactPath: path.relative(paths.cacheRoot, artifactPath).replace(/\\/g, '/'),
+            bundleHash: artifact.bundleHash,
+          },
+          rendered: true,
+        }
       }).pipe(
         Effect.withSpan(`buildSnippet:${entry.entryPath}`, {
           attributes: { entryPath: entry.entryPath },
         }),
       )
 
-    yield* Effect.forEach(snippetEntries, buildSnippet)
+    const snippetResults = yield* Effect.forEach(snippetEntries, buildSnippet, { concurrency: renderConcurrency })
+    const artifactEntries = snippetResults.map((result) => result.artifactEntry)
+    const renderedCount = snippetResults.filter((result) => result.rendered === true).length
 
     const manifest: TSnippetManifest = {
       version: 1,
       generatedAt: new Date().toISOString(),
-      configHash,
+      configHash: manifestConfigHash,
       baseStyles: renderer.baseStyles,
       themeStyles: renderer.themeStyles,
       jsModules: renderer.jsModules,
@@ -1792,6 +1886,8 @@ export const __internal = {
   guessLanguage,
   trimRenderedAst,
   extractCanonicalOwner,
+  prepareSyntaxOnlyCode,
   renderSnippet,
+  renderSyntaxSnippet,
   loadEcRenderer,
 }
