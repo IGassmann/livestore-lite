@@ -1,6 +1,21 @@
 import { defineConfig } from 'vite-plus'
 
 const commonUntrackedEnv = ['CI', 'GITHUB_*', 'RUNNER_*']
+const generatedInputExclusions = [
+  '!**/*.tsbuildinfo',
+  '!tmp/**',
+  '!coverage/**',
+  '!test-results/**',
+  '!playwright-report/**',
+  '!docs/.astro/**',
+  '!docs/dist/**',
+  '!docs/logs/**',
+  '!docs/node_modules/.astro-tldraw/**',
+  '!docs/node_modules/.astro-twoslash-code/**',
+  '!docs/.cache/snippets/**',
+  '!examples/*/dist/**',
+  '!examples/*/.wrangler/**',
+]
 
 export default defineConfig({
   run: {
@@ -25,21 +40,37 @@ export default defineConfig({
       'ci:examples:build': {
         command: 'pnpm run examples:build:src',
         dependsOn: ['ci:ts:build'],
+        input: [{ auto: true }, ...generatedInputExclusions],
+        untrackedEnv: commonUntrackedEnv,
+      },
+      'ci:examples:build-ready': {
+        command: 'true',
+        dependsOn: ['ci:examples:build'],
+        output: [],
         untrackedEnv: commonUntrackedEnv,
       },
       'ci:docs:snippets': {
         command: 'pnpm run docs:build:phase:snippets',
         dependsOn: ['ci:ts:build'],
+        input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: commonUntrackedEnv,
       },
       'ci:docs:diagrams': {
         command: 'pnpm run docs:build:phase:diagrams',
         dependsOn: ['ci:ts:build'],
-        untrackedEnv: [...commonUntrackedEnv, 'PUPPETEER_CACHE_DIR'],
+        input: [{ auto: true }, ...generatedInputExclusions],
+        untrackedEnv: [...commonUntrackedEnv, 'PUPPETEER_CACHE_DIR', 'PUPPETEER_EXECUTABLE_PATH'],
       },
       'ci:docs:astro': {
         command: 'pnpm run docs:build:phase:astro',
         dependsOn: ['ci:docs:snippets', 'ci:docs:diagrams'],
+        input: [{ auto: true }, ...generatedInputExclusions],
+        untrackedEnv: commonUntrackedEnv,
+      },
+      'ci:docs:build': {
+        command: 'true',
+        dependsOn: ['ci:docs:astro'],
+        output: [],
         untrackedEnv: commonUntrackedEnv,
       },
     },
