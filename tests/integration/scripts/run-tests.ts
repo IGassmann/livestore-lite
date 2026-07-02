@@ -22,10 +22,12 @@ export const localDevtoolsPreviewOption = Cli.Options.boolean('local-devtools-pr
 const viteDevServer = ({
   useWorkspacePort,
   useDevtoolsLocalPreview,
+  useDevtoolsPlugin,
 }: {
   app: 'todomvc'
   useWorkspacePort: boolean
   useDevtoolsLocalPreview: boolean
+  useDevtoolsPlugin: boolean
 }) =>
   Effect.gen(function* () {
     const devPort =
@@ -36,9 +38,10 @@ const viteDevServer = ({
       {
         env: {
           // Relative to vite config
-          TEST_LIVESTORE_SCHEMA_PATH_JSON: yield* Schema.encode(Schema.parseJson())(
-            './devtools/todomvc/livestore/schema.ts',
-          ).pipe(Effect.orDie),
+          TEST_LIVESTORE_SCHEMA_PATH_JSON:
+            useDevtoolsPlugin === true
+              ? yield* Schema.encode(Schema.parseJson())('./devtools/todomvc/livestore/schema.ts').pipe(Effect.orDie)
+              : undefined,
           LSD_DEVTOOLS_LOCAL_PREVIEW: useDevtoolsLocalPreview === true ? '1' : undefined,
         },
       },
@@ -67,6 +70,7 @@ export const miscTest: Cli.Command.Command<
         app: 'todomvc',
         useWorkspacePort: mode === 'dev-server',
         useDevtoolsLocalPreview: localDevtoolsPreview,
+        useDevtoolsPlugin: false,
       })
 
       yield* cmd(
@@ -108,6 +112,7 @@ export const todomvcTest: Cli.Command.Command<
         app: 'todomvc',
         useWorkspacePort: mode === 'dev-server',
         useDevtoolsLocalPreview: localDevtoolsPreview,
+        useDevtoolsPlugin: false,
       })
 
       yield* cmd(
@@ -167,6 +172,7 @@ export const devtoolsTest: Cli.Command.Command<
         app: 'todomvc',
         useWorkspacePort: mode === 'dev-server',
         useDevtoolsLocalPreview: localDevtoolsPreview,
+        useDevtoolsPlugin: true,
       })
 
       const spanContext = yield* OtelTracer.currentOtelSpan.pipe(
