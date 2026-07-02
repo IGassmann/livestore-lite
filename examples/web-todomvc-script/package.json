@@ -23,11 +23,11 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "vp build --configLoader runner",
+    "build": "vp run build:cached",
     "deploy": "pnpm run build && pnpm exec wrangler deploy",
     "dev": "vp dev --configLoader runner --force",
     "preview": "vp preview --configLoader runner",
-    "test": "playwright test"
+    "test": "vp run test:e2e"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

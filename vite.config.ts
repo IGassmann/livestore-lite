@@ -382,6 +382,13 @@ export default defineConfig({
       denyWarnings: true,
     },
   },
+  staged: {
+    '*': 'vp check --fix',
+    'docs/**/*': () => [
+      'vp exec --filter @local/docs astro sync',
+      'git add docs/.astro/types.d.ts docs/.astro/content.d.ts',
+    ],
+  },
   run: {
     tasks: {
       'build:clean': {
@@ -488,10 +495,17 @@ export default defineConfig({
       },
 
       'examples:build:src': {
-        command:
-          'npm_config_manage_package_manager_versions=false vpr --filter "livestore-example-*" --concurrency-limit 1 build',
-        dependsOn: ['ts:build'],
-        input: [{ auto: true }, ...generatedInputExclusions],
+        command: 'true',
+        dependsOn: [
+          'livestore-workspace#ts:build',
+          'livestore-example-web-email-client#build:cached',
+          'livestore-example-web-linearlite#build:cached',
+          'livestore-example-web-todomvc#build:cached',
+          'livestore-example-web-todomvc-script#build:cached',
+          'livestore-example-web-todomvc-sync-cf#build:cached',
+          'livestore-example-cloudflare-todomvc#build',
+        ],
+        ...noOutput,
         ...cacheable,
       },
       'examples:deploy:build': {

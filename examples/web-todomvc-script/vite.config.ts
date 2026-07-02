@@ -4,6 +4,13 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 import { defineConfig } from 'vite-plus'
 
 const enableLivestoreDevtools = process.env.LIVESTORE_ENABLE_DEVTOOLS_VITE === '1'
+const buildTask = {
+  command: 'vp build --configLoader runner',
+  dependsOn: ['livestore-workspace#ts:build'],
+  input: [{ auto: true }, '!dist/**', '!**/.wrangler/**'],
+  output: ['dist/**'],
+  untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+}
 
 export default defineConfig(async ({ command }) => {
   const livestoreDevtoolsPlugins =
@@ -22,5 +29,14 @@ export default defineConfig(async ({ command }) => {
     },
     worker: { format: 'es' },
     plugins: [cloudflare(), ...livestoreDevtoolsPlugins],
+    run: {
+      tasks: {
+        'build:cached': buildTask,
+        'test:e2e': {
+          command: 'playwright test',
+          cache: false,
+        },
+      },
+    },
   }
 })

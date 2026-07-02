@@ -11,6 +11,13 @@ import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite-plus'
 
 const enableLivestoreDevtools = process.env.LIVESTORE_ENABLE_DEVTOOLS_VITE === '1'
+const buildTask = {
+  command: 'vp build --configLoader runner',
+  dependsOn: ['livestore-workspace#ts:build'],
+  input: [{ auto: true }, '!dist/**', '!**/.wrangler/**'],
+  output: ['dist/**'],
+  untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(async ({ command }) => {
@@ -51,5 +58,14 @@ export default defineConfig(async ({ command }) => {
       }),
       devtoolsJson(), // Needed for https://github.com/TanStack/router/issues/2459#issuecomment-2969318833
     ],
+    run: {
+      tasks: {
+        'build:cached': buildTask,
+        'test:e2e': {
+          command: 'playwright test',
+          cache: false,
+        },
+      },
+    },
   }
 })
