@@ -1,10 +1,9 @@
-pnpm run lint:full:fix
-pnpm run ts:check
+pnpm exec vp run -w lint:full:fix
+pnpm exec vp run -w ts:check
 
 # Check if docs files have changed
 if git diff --cached --name-only | grep -q "^docs/"; then
-  echo "📝 Docs changed, regenerating Astro types..."
+  echo "Docs changed, regenerating Astro types..."
   pnpm --dir docs exec astro sync
-  # Stage any changes to the type files (from docs directory)
-  cd .. && git add docs/.astro/types.d.ts docs/.astro/content.d.ts 2>/dev/null || true
+  git add docs/.astro/types.d.ts docs/.astro/content.d.ts 2>/dev/null || true
 fi
