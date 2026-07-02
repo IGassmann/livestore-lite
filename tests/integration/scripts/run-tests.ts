@@ -34,7 +34,21 @@ const viteDevServer = ({
       useWorkspacePort === true ? '4444' : yield* getFreePort.pipe(Effect.map(String), UnknownError.mapToUnknownError)
 
     yield* cmd(
-      `./node_modules/.bin/vite --configLoader runner --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`,
+      [
+        'vp',
+        'exec',
+        '--filter',
+        '@local/tests-integration',
+        '--',
+        'vite',
+        '--configLoader',
+        'runner',
+        '--config',
+        'src/tests/playwright/fixtures/vite.config.ts',
+        'dev',
+        '--port',
+        devPort,
+      ],
       {
         env: {
           // Relative to vite config
@@ -74,13 +88,23 @@ export const miscTest: Cli.Command.Command<
       })
 
       yield* cmd(
-        ['pnpm', 'playwright', 'test', mode === 'ui' ? '--ui' : undefined, 'src/tests/playwright/misc-tests.play.ts'],
+        [
+          'vp',
+          'exec',
+          '--filter',
+          '@local/tests-integration',
+          '--',
+          'playwright',
+          'test',
+          mode === 'ui' ? '--ui' : undefined,
+          'src/tests/playwright/misc-tests.play.ts',
+        ],
         {
           env: {
             FORCE_PLAYWRIGHT_VIA_CLI: '1',
             PLAYWRIGHT_SUITE: 'misc',
             LIVESTORE_PLAYWRIGHT_DEV_SERVER_PORT: devPort,
-            DEV_SERVER_COMMAND: `./node_modules/.bin/vite --configLoader runner --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`,
+            DEV_SERVER_COMMAND: `vp exec --filter @local/tests-integration -- vite --configLoader runner --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`,
             PLAYWRIGHT_HEADLESS: mode === 'headless' ? '1' : '0',
             PLAYWRIGHT_UI: mode === 'ui' ? '1' : '0',
           },
@@ -116,7 +140,17 @@ export const todomvcTest: Cli.Command.Command<
       })
 
       yield* cmd(
-        ['pnpm', 'playwright', 'test', mode === 'ui' ? '--ui' : undefined, 'src/tests/playwright/todomvc.play.ts'],
+        [
+          'vp',
+          'exec',
+          '--filter',
+          '@local/tests-integration',
+          '--',
+          'playwright',
+          'test',
+          mode === 'ui' ? '--ui' : undefined,
+          'src/tests/playwright/todomvc.play.ts',
+        ],
         {
           env: {
             FORCE_PLAYWRIGHT_VIA_CLI: '1',
@@ -184,7 +218,17 @@ export const devtoolsTest: Cli.Command.Command<
         return yield* Effect.never
       } else {
         yield* cmd(
-          ['pnpm', 'playwright', 'test', mode === 'ui' ? '--ui' : undefined, 'src/tests/playwright/devtools/*'],
+          [
+            'vp',
+            'exec',
+            '--filter',
+            '@local/tests-integration',
+            '--',
+            'playwright',
+            'test',
+            mode === 'ui' ? '--ui' : undefined,
+            'src/tests/playwright/devtools/*',
+          ],
           {
             env: {
               FORCE_PLAYWRIGHT_VIA_CLI: '1',
