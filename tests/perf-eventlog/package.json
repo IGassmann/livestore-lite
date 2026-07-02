@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm exec vite build --configLoader runner --config test-app/vite.config.ts",
-    "dev": "pnpm exec vite --configLoader runner --config test-app/vite.config.ts",
-    "preview": "pnpm exec vite preview --configLoader runner --config test-app/vite.config.ts",
+    "build": "pnpm exec vp build --configLoader runner --config test-app/vite.config.ts",
+    "dev": "pnpm exec vp dev --configLoader runner --config test-app/vite.config.ts",
+    "preview": "pnpm exec vp preview --configLoader runner --config test-app/vite.config.ts",
     "test": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test"
   },
   "dependencies": {
