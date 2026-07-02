@@ -86,7 +86,7 @@ export const ensureExampleExists = (example: string, available: readonly string[
 export const runExampleTests = (examples: ReadonlyArray<string>, options: { skipMissing?: boolean } = {}) =>
   Effect.gen(function* () {
     /**
-     * Lightweight preflight that mirrors the `pnpm exec vp run -w examples:test` command so CI and deploys share
+     * Lightweight preflight that mirrors the `vp run -w examples:test` command so CI and deploys share
      * the same behaviour. We deliberately run sequentially to avoid overwhelming the runner when
      * Vite spins up multiple dev servers.
      */
@@ -144,9 +144,9 @@ export const runExampleTests = (examples: ReadonlyArray<string>, options: { skip
       }
 
       yield* Effect.log(`Running tests for ${example}`)
-      yield* cmd('pnpm test', {
+      yield* cmd(['vp', 'run', '--filter', `./examples/${example}`, 'test'], {
         env: { CI: '1' },
-      }).pipe(Effect.provide(LivestoreWorkspace.toCwd(`examples/${example}`)))
+      }).pipe(Effect.provide(LivestoreWorkspace.toCwd()))
     }
   })
 

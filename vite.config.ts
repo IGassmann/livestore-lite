@@ -45,7 +45,7 @@ const releaseChangesetVersion = [
   nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
   nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
   nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
-  'pnpm install --lockfile-only --no-frozen-lockfile',
+  'vp install --lockfile-only --no-frozen-lockfile',
   nodeTs('scripts/src/commands/changesets.ts', 'assert-fixed-versions'),
   nodeTs('scripts/src/commands/changesets.ts', 'write-release-plan --npm-tag "${LIVESTORE_NPM_TAG:-latest}"'),
 ]
@@ -137,7 +137,7 @@ const uploadPlaywrightTrace = [
   'suite="${PLAYWRIGHT_SUITE:-}"',
   'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
   'if [ -n "${NETLIFY_AUTH_TOKEN:-}" ]; then',
-  '  pnpm dlx netlify-cli deploy --no-build --dir=tests/integration/playwright-report --site livestore-ci --filter @local/tests-integration --alias "$suite-$(git rev-parse --short HEAD)"',
+  '  vp dlx netlify-cli deploy --no-build --dir=tests/integration/playwright-report --site livestore-ci --filter @local/tests-integration --alias "$suite-$(git rev-parse --short HEAD)"',
   'else',
   "  echo 'Skipping Netlify deploy: NETLIFY_AUTH_TOKEN not set'",
   'fi',
@@ -405,7 +405,7 @@ export default defineConfig({
         cache: false,
       },
       'check:lockfile': {
-        command: 'pnpm install --frozen-lockfile --lockfile-only',
+        command: 'vp install --frozen-lockfile --lockfile-only',
         cache: false,
       },
       'check:md-imports': {
@@ -523,7 +523,7 @@ export default defineConfig({
         cache: false,
       },
       'examples:install': {
-        command: 'npm_config_manage_package_manager_versions=false pnpm install --frozen-lockfile --dir examples',
+        command: 'cd examples && vp install --frozen-lockfile',
         cache: false,
       },
       'examples:test': {
@@ -545,7 +545,7 @@ export default defineConfig({
         cache: false,
       },
       'pnpm:install': {
-        command: 'pnpm install --frozen-lockfile',
+        command: 'vp install --frozen-lockfile',
         cache: false,
       },
       'pnpm:reset-lock-files': {

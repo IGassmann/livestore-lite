@@ -191,12 +191,12 @@ export const buildCloudflareWorker = ({
    * wrangler.json when CLOUDFLARE_ENV is set. The rest of the pipeline works
    * off the build output.
    */
-  return cmd(['pnpm', 'build'], {
+  return cmd(['vp', 'run', '--filter', `./${example.repoRelativePath}`, 'build'], {
     env: {
       ...process.env,
       CLOUDFLARE_ENV: envName,
     },
-  }).pipe(Effect.provide(LivestoreWorkspace.toCwd(example.repoRelativePath)))
+  }).pipe(Effect.provide(LivestoreWorkspace.toCwd()))
 }
 
 export const deployCloudflareWorker = ({
@@ -213,8 +213,11 @@ export const deployCloudflareWorker = ({
 
   return cmd(
     [
-      'pnpm',
+      'vp',
       'exec',
+      '--filter',
+      `./${example.repoRelativePath}`,
+      '--',
       'wrangler',
       'deploy',
       dryRun === true ? '--dry-run' : undefined,
@@ -230,7 +233,7 @@ export const deployCloudflareWorker = ({
       },
     },
   ).pipe(
-    Effect.provide(LivestoreWorkspace.toCwd(example.repoRelativePath)),
+    Effect.provide(LivestoreWorkspace.toCwd()),
     Effect.mapError(
       (cause) =>
         new CloudflareError({

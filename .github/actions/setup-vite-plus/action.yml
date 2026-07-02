@@ -10,6 +10,3 @@ runs:
         cache: true
         run-install: |
           - args: ['--frozen-lockfile']
-    - name: Install pnpm compatibility shim
-      shell: bash
-      run: vp install --global pnpm@11.3.0

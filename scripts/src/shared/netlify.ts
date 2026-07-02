@@ -75,7 +75,7 @@ const NETLIFY_API_URL = 'https://api.netlify.com/api/v1/purge'
  * We run the complete Netlify build pipeline from the git root via the CLI on
  * our own runner (not Netlify's git-CI). `--build` makes the CLI invoke
  * `@netlify/build`, which runs the `[build] command` in `docs/netlify.toml`
- * (`cd docs && astro build`) and then correctly bundles BOTH the serverless SSR
+ * (`vp exec --filter @local/docs -- astro build`) and then correctly bundles BOTH the serverless SSR
  * function AND the edge function — no manual `--dir`/`--functions` flags needed.
  *
  * Why this beats the previous `--dir … --no-build --functions=…` flow: the CLI's
@@ -87,11 +87,11 @@ const NETLIFY_API_URL = 'https://api.netlify.com/api/v1/purge'
  * Requirements:
  * - `--filter @local/docs`: the monorepo build is otherwise ambiguous
  *   ("multiple build commands"). The deploy runs from the git root, so the
- *   `[build] command` must `cd docs` and `publish` must be git-root-relative
- *   (`docs/dist`).
+ *   `[build] command` selects the docs package and `publish` must be
+ *   git-root-relative (`docs/dist`).
  * - `NODE_ENV=production`: the astro adapter only engages in production.
- * - `DT_PASSTHROUGH=1`: `pnpm`/`astro` are blocked by the agent-policy wrapper
- *   inside Netlify's spawned subprocess; the `[build] command` uses `pnpm exec astro`
+ * - `DT_PASSTHROUGH=1`: `vp`/`astro` are blocked by the agent-policy wrapper
+ *   inside Netlify's spawned subprocess; the `[build] command` uses `vp exec astro`
  *   and this flag lets it through.
  * - Edge bundling needs Deno on PATH / in `~/.config/netlify/deno-cli/deno`.
  */
@@ -112,12 +112,12 @@ export const deployToNetlify = Effect.fn('netlify.deploy')(
     apiDocs?: boolean
   }) {
     // Option A runs the full `@netlify/build` pipeline from the git root. The
-    // `[build] command` (`cd docs && pnpm exec astro build`) and the git-root-relative
+    // `[build] command` (`vp exec --filter @local/docs -- astro build`) and the git-root-relative
     // `publish = "docs/dist"` + `edge_functions = "docs/netlify/edge-functions"`
     // are all resolved relative to the repo root, so the deploy must run there.
     const gitRoot = yield* LivestoreWorkspace
     // Run the status check from the git root too (Option A deploys from there).
-    const netlifyStatus = yield* cmdText(['pnpm', 'dlx', 'netlify-cli', 'status'], { stderr: 'pipe' }).pipe(
+    const netlifyStatus = yield* cmdText(['vp', 'dlx', 'netlify-cli', 'status'], { stderr: 'pipe' }).pipe(
       Effect.provide(CurrentWorkingDirectory.fromPath(gitRoot)),
     )
 
@@ -141,7 +141,7 @@ export const deployToNetlify = Effect.fn('netlify.deploy')(
     // `docs/netlify.toml` and bundles both the SSR serverless function and the
     // edge function. `--filter @local/docs` disambiguates the monorepo build
     // (otherwise the CLI errors with "multiple build commands").
-    const deployCmd = 'pnpm'
+    const deployCmd = 'vp'
     const deployRest = [
       'dlx',
       'netlify-cli',
@@ -168,7 +168,7 @@ export const deployToNetlify = Effect.fn('netlify.deploy')(
             Command.env({
               CI: '1',
               // The astro adapter only engages with NODE_ENV=production, and the
-              // agent-policy wrapper blocks pnpm/astro inside Netlify's spawned
+              // agent-policy wrapper blocks vp/astro inside Netlify's spawned
               // subprocess unless DT_PASSTHROUGH passes them through.
               NODE_ENV: 'production',
               NETLIFY_SITE_ID: resolvedSiteArg,
