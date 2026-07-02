@@ -263,6 +263,8 @@ jobs:
         run: pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome
       - name: Build docs diagrams
         run: pnpm run docs:build:phase:diagrams
+      - name: Install docs Playwright browser
+        run: pnpm --dir docs exec playwright install chromium
       - name: Build Astro docs bundle
         run: pnpm run docs:build:phase:astro
       - name: Collect docs build diagnostics on failure
