@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite-plus'
 
 const commonUntrackedEnv = ['CI', 'GITHUB_*', 'RUNNER_*']
+const branchEnv = ['GITHUB_BRANCH_NAME', 'GITHUB_REF_NAME', 'GITHUB_HEAD_REF', 'GITHUB_REF']
 const generatedInputExclusions = [
   '!**/*.tsbuildinfo',
   '!tmp/**',
@@ -48,6 +49,18 @@ export default defineConfig({
         dependsOn: ['ci:examples:build'],
         output: [],
         untrackedEnv: commonUntrackedEnv,
+      },
+      'ci:examples:deploy-build': {
+        command: 'pnpm run examples:deploy:build',
+        input: [{ auto: true }, ...generatedInputExclusions],
+        env: branchEnv,
+        untrackedEnv: ['CI', 'RUNNER_*'],
+      },
+      'ci:examples:deploy-build:prod': {
+        command: 'pnpm run examples:deploy:build:prod',
+        input: [{ auto: true }, ...generatedInputExclusions],
+        env: branchEnv,
+        untrackedEnv: ['CI', 'RUNNER_*'],
       },
       'ci:docs:snippets': {
         command: 'pnpm run docs:build:phase:snippets',

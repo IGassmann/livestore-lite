@@ -298,10 +298,29 @@ jobs:
           path: tmp/ci-docs-prod/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Restore Vite Task cache for production examples
+        if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
+        id: vite-task-cache-examples
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-examples-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
+      - name: Build production example workers
+        if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
+        timeout-minutes: 30
+        run: pnpm exec vp run -v ci:examples:deploy-build:prod
+      - name: Save Vite Task cache for production examples
+        if: ${{ success() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' }}
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache-examples.outputs.cache-primary-key }}
       - name: Deploy production examples
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 30
-        run: pnpm run examples:deploy:prod
+        run: pnpm run examples:deploy:prod:no-build
       - name: Sync production docs search
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 15

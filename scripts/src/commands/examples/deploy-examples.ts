@@ -229,6 +229,53 @@ const deploymentKindLabel = (kind: CloudflareEnvironmentKind) => kind
 const deploymentKindDescription = (kind: DeploymentKind) =>
   kind === 'prod' ? 'to production' : kind === 'dev' ? 'to dev' : 'to preview'
 
+const getFilteredExamples = (exampleFilter: Option.Option<string>) => {
+  const filteredExamples = cloudflareExamples.filter((example) =>
+    Option.isSome(exampleFilter) === true ? example.slug.includes(exampleFilter.value) : true,
+  )
+
+  if (filteredExamples.length === 0) {
+    const available = cloudflareExamples.map((example) => example.slug).join(', ')
+    console.error(
+      Option.isSome(exampleFilter) === true
+        ? `No examples found matching filter: ${exampleFilter.value}. Available examples: ${available}`
+        : 'No examples configured for Cloudflare deployment.',
+    )
+  }
+
+  return filteredExamples
+}
+
+export const buildExampleWorkers = ({ exampleFilter, prod }: { exampleFilter: Option.Option<string>; prod: boolean }) =>
+  Effect.gen(function* () {
+    const { branchName } = yield* getBranchInfo
+    console.log(`Build branch: ${branchName}`)
+
+    if (prod === true) {
+      yield* Effect.sync(() => assertProductionDeployAllowed(liveStoreVersion))
+    }
+
+    const filteredExamples = getFilteredExamples(exampleFilter)
+    if (filteredExamples.length === 0) return
+
+    const deploymentKind = determineDeploymentKind({ prod, branchName })
+    console.log(
+      `Building example workers (${deploymentKindDescription(deploymentKind)}): ${filteredExamples
+        .map((example) => example.slug)
+        .join(', ')}`,
+    )
+
+    yield* Effect.forEach(
+      filteredExamples,
+      (example) =>
+        Effect.gen(function* () {
+          yield* Effect.log(`Building ${example.slug}`)
+          yield* buildCloudflareWorker({ example, kind: deploymentKind })
+        }),
+      { concurrency: 3 },
+    )
+  })
+
 /**
  * Build + deploy a single example, returning a summary that can be rendered in the CLI table.
  */
@@ -237,11 +284,13 @@ const deployExample = ({
   prod,
   branchName,
   workersSubdomain,
+  skipBuild,
 }: {
   exampleSlug: string
   prod: boolean
   branchName: string
   workersSubdomain: string
+  skipBuild: boolean
 }) =>
   Effect.gen(function* () {
     const manifest = yield* getCloudflareExample(exampleSlug)
@@ -250,8 +299,12 @@ const deployExample = ({
     const workerName = resolveWorkerName({ example: manifest, kind: deploymentKind })
     const workerHost = `${workerName}.${workersSubdomain}.workers.dev`
 
-    yield* Effect.log(`Building ${exampleSlug} (${envName})`)
-    yield* buildCloudflareWorker({ example: manifest, kind: deploymentKind })
+    if (skipBuild === false) {
+      yield* Effect.log(`Building ${exampleSlug} (${envName})`)
+      yield* buildCloudflareWorker({ example: manifest, kind: deploymentKind })
+    } else {
+      yield* Effect.log(`Using existing build output for ${exampleSlug} (${envName})`)
+    }
 
     yield* Effect.log(`Deploying ${exampleSlug} as ${workerName}`)
     yield* deployCloudflareWorker({ example: manifest, kind: deploymentKind }).pipe(
@@ -291,8 +344,12 @@ export const command = Cli.Command.make(
   {
     exampleFilter: Cli.Options.text('example-filter').pipe(Cli.Options.withAlias('e'), Cli.Options.optional),
     prod: Cli.Options.boolean('prod').pipe(Cli.Options.withDefault(false)),
+    skipBuild: Cli.Options.boolean('skip-build').pipe(
+      Cli.Options.withDefault(false),
+      Cli.Options.withDescription('Deploy existing dist output without rebuilding workers'),
+    ),
   },
-  Effect.fn(function* ({ exampleFilter, prod }) {
+  Effect.fn(function* ({ exampleFilter, prod, skipBuild }) {
     // Ensure credentials are present before kicking off parallel builds; wrangler fails with
     // an opaque message otherwise.
     yield* resolveCloudflareAccountId
@@ -306,19 +363,8 @@ export const command = Cli.Command.make(
       yield* Effect.sync(() => assertProductionDeployAllowed(liveStoreVersion))
     }
 
-    const filteredExamples = cloudflareExamples.filter((example) =>
-      Option.isSome(exampleFilter) === true ? example.slug.includes(exampleFilter.value) : true,
-    )
-
-    if (filteredExamples.length === 0) {
-      const available = cloudflareExamples.map((example) => example.slug).join(', ')
-      console.error(
-        Option.isSome(exampleFilter) === true
-          ? `No examples found matching filter: ${exampleFilter.value}. Available examples: ${available}`
-          : 'No examples configured for Cloudflare deployment.',
-      )
-      return
-    }
+    const filteredExamples = getFilteredExamples(exampleFilter)
+    if (filteredExamples.length === 0) return
 
     const workersSubdomain = yield* resolveWorkersSubdomain
     const deploymentKind = determineDeploymentKind({ prod: requestedProd, branchName })
@@ -336,6 +382,7 @@ export const command = Cli.Command.make(
           prod: requestedProd,
           branchName,
           workersSubdomain,
+          skipBuild,
         }),
       { concurrency: 3 },
     )

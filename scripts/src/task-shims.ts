@@ -196,8 +196,12 @@ const tasks: Record<string, TaskSpec> = {
     command:
       'npm_config_manage_package_manager_versions=false pnpm --dir examples --filter "livestore-example-*" --workspace-concurrency=1 build',
   },
+  'examples:deploy:build': { command: repoCli('examples build-workers') },
+  'examples:deploy:build:prod': { command: repoCli('examples build-workers --prod') },
   'examples:deploy': { command: repoCli('examples deploy') },
+  'examples:deploy:no-build': { command: repoCli('examples deploy --skip-build') },
   'examples:deploy:prod': { command: repoCli('examples deploy --prod') },
+  'examples:deploy:prod:no-build': { command: repoCli('examples deploy --prod --skip-build') },
   'examples:install': {
     command: 'npm_config_manage_package_manager_versions=false pnpm install --frozen-lockfile --dir examples',
   },

@@ -66,6 +66,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Restore Vite Task cache
+        id: vite-task-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -76,8 +84,16 @@ jobs:
           echo "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-2.grafana.net/otlp" >> $GITHUB_ENV
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
+      - name: Build production example workers
+        run: pnpm exec vp run -v ci:examples:deploy-build:prod
+      - name: Save Vite Task cache
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}
       - name: Deploy production examples
-        run: pnpm run examples:deploy:prod
+        run: pnpm run examples:deploy:prod:no-build
   deploy-search:
     if: ${{ inputs.target == 'search' || inputs.target == 'all' }}
     runs-on: ubuntu-24.04
