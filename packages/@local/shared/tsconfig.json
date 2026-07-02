@@ -3,13 +3,17 @@
     "target": "ES2024",
     "lib": ["ES2024"],
     "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
     "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowJs": false,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
@@ -18,6 +22,8 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
     "plugins": [
       {
         "name": "@effect/language-service",
@@ -33,8 +39,7 @@
     ],
     "composite": true,
     "rootDir": ".",
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    "types": ["node"]
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   "include": ["./src"],
   "exclude": ["node_modules", "**/dist", "**/node_modules/.pnpm"]

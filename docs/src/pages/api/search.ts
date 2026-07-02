@@ -19,6 +19,19 @@ interface SearchMetadata {
   file_path?: string
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
+
+const toSearchMetadata = (value: unknown): Partial<SearchMetadata> => {
+  if (isRecord(value) === false) return {}
+
+  return {
+    ...(typeof value.title === 'string' ? { title: value.title } : {}),
+    ...(typeof value.description === 'string' ? { description: value.description } : {}),
+    ...(typeof value.path === 'string' ? { path: value.path } : {}),
+    ...(typeof value.file_path === 'string' ? { file_path: value.file_path } : {}),
+  }
+}
+
 export interface SearchResult {
   id: string
   type: 'page' | 'heading'
@@ -96,11 +109,9 @@ export const GET: APIRoute = async ({ url }) => {
 
     response.data.forEach((item, index) => {
       const metadata = {
-        ...(typeof item.metadata === 'object' && item.metadata !== null ? item.metadata : {}),
-        ...(typeof item.generated_metadata === 'object' && item.generated_metadata !== null
-          ? item.generated_metadata
-          : {}),
-      } as SearchMetadata
+        ...toSearchMetadata(item.metadata),
+        ...toSearchMetadata(item.generated_metadata),
+      }
 
       const url = filePathToHref(metadata?.file_path || '')
       const title = metadata?.title || 'Untitled'

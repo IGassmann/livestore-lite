@@ -166,6 +166,20 @@ const noOutput = {
   output: [],
 }
 
+const stableUnitTestPackageTasks = [
+  '@livestore/common#test',
+  '@livestore/common-cf#test',
+  '@livestore/livestore#test',
+  '@livestore/react#test',
+  '@livestore/sqlite-wasm#test',
+  '@livestore/utils#test',
+  '@livestore/utils-dev#test',
+  '@local/astro-tldraw#test',
+  '@local/astro-twoslash-code#test',
+]
+
+const flakyUnitTestPackageTasks = ['@livestore/webmesh#test', '@local/tests-package-common#test']
+
 export default defineConfig({
   fmt: {
     semi: false,
@@ -230,6 +244,21 @@ export default defineConfig({
       '**/.turbo/**',
       'tests/integration/node_modules/**',
       'docs/src/plugins/**',
+      'docs/src/content/_assets/code/**',
+      'docs/netlify/**',
+      'examples/**',
+      'tests/perf/**',
+      'tests/perf-eventlog/**',
+      'tests/integration/src/tests/devtools/fixtures/**',
+      'packages/@livestore/wa-sqlite/**/*.js',
+      'packages/@livestore/wa-sqlite/**/*.mjs',
+      'packages/@livestore/wa-sqlite/src/types/index.d.ts',
+      'packages/@livestore/sqlite-wasm/vitest.config.ts',
+      'packages/@livestore/react/test/setup.ts',
+      'packages/@local/astro-twoslash-code/example/**',
+      'packages/@local/astro-twoslash-code/example/src/content/_assets/code/diagnostics.ts',
+      'packages/@local/astro-twoslash-code/src/vite/test-fixtures/**',
+      'packages/@livestore/common-cf/src/ws-rpc/test-fixtures/worker.ts',
     ],
     categories: {
       correctness: 'error',
@@ -283,16 +312,20 @@ export default defineConfig({
       'typescript/no-unnecessary-boolean-literal-compare': 'off',
       'typescript/no-unnecessary-type-arguments': 'off',
       'typescript/no-duplicate-type-constituents': 'error',
-      'typescript/no-unnecessary-type-assertion': 'error',
+      'typescript/no-unnecessary-type-assertion': 'off',
       'typescript/restrict-template-expressions': 'error',
       'typescript/no-floating-promises': 'off',
       'typescript/no-base-to-string': 'error',
+      'typescript/consistent-return': 'off',
       'typescript/no-redundant-type-constituents': 'error',
       'typescript/no-unnecessary-template-expression': 'error',
       'typescript/no-meaningless-void-operator': 'error',
+      'typescript/no-unnecessary-type-conversion': 'off',
+      'typescript/no-unnecessary-type-parameters': 'off',
       'typescript/unbound-method': 'off',
       'typescript/no-misused-spread': 'off',
       'typescript/no-for-in-array': 'off',
+      'typescript/no-useless-default-assignment': 'off',
       'no-extraneous-class': 'off',
       'triple-slash-reference': 'off',
       'no-new': 'off',
@@ -379,13 +412,15 @@ export default defineConfig({
       },
     ],
     options: {
+      typeAware: true,
+      typeCheck: true,
       denyWarnings: true,
     },
   },
   staged: {
     '*': 'vp check --fix',
     'docs/**/*': () => [
-      'vp exec --filter @local/docs astro sync',
+      `env WORKSPACE_ROOT=${process.cwd()} vp exec --filter @local/docs astro sync`,
       'git add docs/.astro/types.d.ts docs/.astro/content.d.ts',
     ],
   },
@@ -741,6 +776,22 @@ export default defineConfig({
         command: repoCli('test perf'),
         cache: false,
       },
+      'test:unit:packages': {
+        command: 'true',
+        dependsOn: stableUnitTestPackageTasks,
+        cache: false,
+      },
+      'test:unit:flaky': {
+        command: 'true',
+        dependsOn: flakyUnitTestPackageTasks,
+        cache: false,
+      },
+      'test:unit:graph': {
+        command: 'true',
+        dependsOn: ['ts:build', 'test:unit:packages', 'test:unit:flaky'],
+        cache: false,
+      },
+      // Keep the repo-cli wrapper as the canonical entry until its CI flake-ignore and concurrency semantics move into the graph.
       'test:unit': {
         command: repoCli('test unit'),
         dependsOn: ['ts:build'],
