@@ -223,7 +223,6 @@ in
         "ts:build"
       ];
     })
-    ./nix/devenv-modules/tasks/local/github-rulesets.nix
   ];
 
   # Keep Nix-provided `tsc` aligned with the workspace TypeScript catalog override so
