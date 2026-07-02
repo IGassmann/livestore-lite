@@ -26,7 +26,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "typescript": "5.9.3",
-    "vite": "8.1.3",
+    "vite": "catalog:",
     "@opentelemetry/exporter-trace-otlp-http": "0.208.0"
   },
   "devDependencies": {
@@ -54,6 +54,7 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "effect": "3.21.2",
-    "tsx": "^4.20.0"
+    "tsx": "^4.20.0",
+    "vitest": "catalog:"
   }
 }

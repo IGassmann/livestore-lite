@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vite-plus'
 
 /*
 NOTE we're mapping to absolute paths here to avoid issues where tests seem to be resolved multiple times leading to duplicates
