@@ -28,7 +28,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             ${{ steps.docs-snippet-cache-key.outputs.restore-key }}
       - name: Build + deploy docs to Netlify
-        run: pnpm exec vp run -w -v docs:deploy:prod:phase:build-deploy
+        run: vp run -w -v docs:deploy:prod:phase:build-deploy
       - name: Save docs snippet cache
         if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
@@ -59,12 +59,12 @@ jobs:
           path: docs/node_modules/.astro-twoslash-code
           key: ${{ steps.docs-snippet-cache-key.outputs.key }}
       - name: Verify docs deploy
-        run: pnpm exec vp run -w -v docs:deploy:prod:phase:verify
+        run: vp run -w -v docs:deploy:prod:phase:verify
       - name: Purge Netlify CDN
-        run: pnpm exec vp run -w -v docs:deploy:prod:phase:purge
+        run: vp run -w -v docs:deploy:prod:phase:purge
       - name: Collect docs deploy diagnostics on failure
         if: ${{ failure() }}
-        run: pnpm exec vp run -w -v docs:deploy:prod:diagnostics
+        run: vp run -w -v docs:deploy:prod:diagnostics
       - name: Upload docs prod deploy logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -82,7 +82,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Restore Vite Task cache
         id: vite-task-cache
         uses: actions/cache/restore@v6
@@ -102,7 +102,7 @@ jobs:
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
       - name: Build production example workers
-        run: pnpm exec vp run -w -v ci:examples:deploy-build:prod
+        run: vp run -w -v ci:examples:deploy-build:prod
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -110,7 +110,7 @@ jobs:
           path: node_modules/.vite/task-cache
           key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}
       - name: Deploy production examples
-        run: pnpm exec vp run -w -v examples:deploy:prod:no-build
+        run: vp run -w -v examples:deploy:prod:no-build
   deploy-search:
     if: ${{ inputs.target == 'search' || inputs.target == 'all' }}
     runs-on: ubuntu-24.04
@@ -120,6 +120,6 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Sync production docs search
-        run: pnpm exec vp run -w -v docs:search:sync:prod
+        run: vp run -w -v docs:search:sync:prod

@@ -1,0 +1,13 @@
+name: Setup Vite+
+description: Install Vite+, provision Node 24 and the pinned package manager, and install workspace dependencies.
+
+runs:
+  using: composite
+  steps:
+    - uses: voidzero-dev/setup-vp@v1
+      with:
+        node-version: '24'
+        cache: true
+    - name: Install dependencies
+      shell: bash
+      run: vp install --frozen-lockfile
