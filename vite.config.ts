@@ -42,7 +42,7 @@ const checkMdImports = [
 
 const releaseChangesetVersion = [
   "git ls-files '*package.json' | xargs chmod u+w",
-  'pnpm exec changeset version',
+  runTask('changeset:version'),
   nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
   nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
   nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
@@ -251,13 +251,13 @@ export default defineConfig({
       },
       'docs:search:sync:prod': {
         command:
-          ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID secret}" && pnpm --dir docs exec mxbai store sync "$MXBAI_VECTOR_STORE_ID" "./src/content/**/*.mdx" "./src/content/**/*.md" --yes --strategy fast',
+          ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && export MXBAI_VECTOR_STORE_ID="${MXBAI_VECTOR_STORE_ID:-${MXBAI_VECTOR_STORE_ID_PROD:-}}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID or MXBAI_VECTOR_STORE_ID_PROD secret}" && vp run @local/docs#prod:docs:sync:env',
         cache: false,
       },
 
       'examples:build:src': {
         command:
-          'npm_config_manage_package_manager_versions=false pnpm --dir examples --filter "livestore-example-*" --workspace-concurrency=1 build',
+          'npm_config_manage_package_manager_versions=false vp run --filter "livestore-example-*" --concurrency-limit 1 build',
         dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
         ...cacheable,
@@ -390,7 +390,7 @@ export default defineConfig({
         ...cacheable,
       },
       'release:changeset:status': {
-        command: 'pnpm exec changeset status --since "${CHANGESET_BASE_REF:-origin/main}"',
+        command: `${runTask('changeset:status')} --since "\${CHANGESET_BASE_REF:-origin/main}"`,
         env: ['CHANGESET_BASE_REF'],
         ...noOutput,
         ...cacheable,
