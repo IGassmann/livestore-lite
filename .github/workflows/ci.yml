@@ -25,7 +25,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Restore Vite Task cache
         id: vite-task-cache
         uses: actions/cache/restore@v6
@@ -35,7 +35,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run lint checks
-        run: pnpm exec vp run -w -v ci:lint
+        run: vp run -w -v ci:lint
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -50,13 +50,13 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Fetch changeset comparison base
         run: 'git fetch origin "${{ github.base_ref }}" --depth=1'
       - name: Check release intent
-        run: pnpm exec vp run -w -v release:changeset:check-pr
+        run: vp run -w -v release:changeset:check-pr
       - name: Check changeset bodies
-        run: pnpm exec vp run -w -v release:changeset:check-bodies
+        run: vp run -w -v release:changeset:check-bodies
   type-check:
     runs-on: ubuntu-24.04
     defaults:
@@ -64,7 +64,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Restore Vite Task cache
         id: vite-task-cache
         uses: actions/cache/restore@v6
@@ -74,7 +74,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run type-check
-        run: pnpm exec vp run -w -v ci:ts:build
+        run: vp run -w -v ci:ts:build
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -88,7 +88,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Restore Vite Task cache
         id: vite-task-cache
         uses: actions/cache/restore@v6
@@ -98,7 +98,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run unit tests
-        run: pnpm exec vp run -w -v ci:test:unit
+        run: vp run -w -v ci:test:unit
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -123,7 +123,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Install Nix for wa-sqlite build
         uses: DeterminateSystems/nix-installer-action@a7ad9c4f0c65208097f4d34f3cfa1913b80cce5c
         with:
@@ -145,7 +145,7 @@ jobs:
       - name: 'Run sync-provider tests for ${{ matrix.provider }}'
         env:
           TEST_SYNC_PROVIDER: ${{ matrix.provider }}
-        run: pnpm exec vp run -w -v test:integration:sync-provider:matrix
+        run: vp run -w -v test:integration:sync-provider:matrix
   test-integration-playwright:
     strategy:
       matrix:
@@ -156,7 +156,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Install Playwright browsers
         run: pnpm --dir tests/integration exec playwright install --with-deps chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
@@ -172,7 +172,7 @@ jobs:
       - name: Run integration tests
         env:
           PLAYWRIGHT_SUITE: ${{ matrix.suite }}
-        run: pnpm exec vp run -w -v test:integration:playwright:suite
+        run: vp run -w -v test:integration:playwright:suite
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -184,7 +184,7 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           PLAYWRIGHT_SUITE: ${{ matrix.suite }}
-        run: pnpm exec vp run -w -v test:integration:playwright:upload-trace
+        run: vp run -w -v test:integration:playwright:upload-trace
   perf-test:
     runs-on: ubuntu-24.04
     defaults:
@@ -195,7 +195,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Install Playwright browsers
         run: pnpm --dir tests/perf exec playwright install --with-deps chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
@@ -209,7 +209,7 @@ jobs:
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
       - name: Run performance tests
-        run: pnpm exec vp run -w -v test:perf
+        run: vp run -w -v test:perf
   wa-sqlite-test:
     runs-on: ubuntu-24.04
     defaults:
@@ -217,7 +217,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Install Nix for wa-sqlite build
         uses: DeterminateSystems/nix-installer-action@a7ad9c4f0c65208097f4d34f3cfa1913b80cce5c
         with:
@@ -237,9 +237,9 @@ jobs:
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
       - name: Build wa-sqlite
-        run: pnpm exec vp run -w -v test:integration:wa-sqlite:build
+        run: vp run -w -v test:integration:wa-sqlite:build
       - name: Run wa-sqlite tests
-        run: pnpm exec vp run -w -v test:integration:wa-sqlite
+        run: vp run -w -v test:integration:wa-sqlite
   build-and-deploy-examples-src:
     runs-on: ubuntu-24.04
     defaults:
@@ -247,7 +247,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Restore Vite Task cache
         id: vite-task-cache
         uses: actions/cache/restore@v6
@@ -257,13 +257,13 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Install examples dependencies
-        run: pnpm exec vp run -w -v examples:install
+        run: vp run -w -v examples:install
       - name: Build examples
-        run: pnpm exec vp run -w -v ci:examples:build-ready
+        run: vp run -w -v ci:examples:build-ready
       - name: Install example Playwright browsers
         run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
       - name: Test examples
-        run: pnpm exec vp run -w -v examples:test
+        run: vp run -w -v examples:test
       - id: cloudflare-deploy
         name: Detect Cloudflare deploy credentials
         env:
@@ -277,14 +277,14 @@ jobs:
           fi
       - name: Build example workers for deploy
         if: ${{ github.event.pull_request.head.repo.fork != true && steps.cloudflare-deploy.outputs.enabled == 'true' }}
-        run: pnpm exec vp run -w -v ci:examples:deploy-build
+        run: vp run -w -v ci:examples:deploy-build
       - id: deploy-examples
         name: Deploy examples to Cloudflare
         if: ${{ github.event.pull_request.head.repo.fork != true && steps.cloudflare-deploy.outputs.enabled == 'true' }}
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: pnpm exec vp run -w -v examples:deploy:no-build
+        run: vp run -w -v examples:deploy:no-build
       - name: Upload examples deploy workflow report
         if: ${{ github.event_name == 'pull_request' && steps.deploy-examples.outcome == 'success' }}
         uses: actions/upload-artifact@v4
@@ -295,7 +295,7 @@ jobs:
           retention-days: 14
       - name: Validate hosted example links
         if: ${{ steps.deploy-examples.outcome == 'success' }}
-        run: pnpm exec vp run -w -v examples:validate-links
+        run: vp run -w -v examples:validate-links
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -309,7 +309,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Restore Vite Task cache
         id: vite-task-cache
         uses: actions/cache/restore@v6
@@ -343,7 +343,7 @@ jobs:
         run: pnpm --dir docs exec playwright install --with-deps chromium
       - name: Build docs
         timeout-minutes: 20
-        run: pnpm exec vp run -w -v ci:docs:build
+        run: vp run -w -v ci:docs:build
       - name: Save docs snippet cache
         if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
@@ -352,7 +352,7 @@ jobs:
           key: ${{ steps.docs-snippet-cache-key.outputs.key }}
       - name: Collect docs build diagnostics on failure
         if: ${{ failure() }}
-        run: pnpm exec vp run -w -v docs:build:diagnostics
+        run: vp run -w -v docs:build:diagnostics
       - name: Upload docs build logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -375,7 +375,7 @@ jobs:
         if: ${{ success() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true) && steps.netlify-deploy.outputs.enabled == 'true' }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        run: pnpm exec vp run -w -v docs:deploy
+        run: vp run -w -v docs:deploy
       - name: Upload docs deploy workflow report
         if: ${{ github.event_name == 'pull_request' && steps.deploy-docs.outcome == 'success' }}
         uses: actions/upload-artifact@v4

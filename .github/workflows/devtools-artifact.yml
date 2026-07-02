@@ -60,7 +60,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/setup-vite-plus
       - name: Write artifact manifest
         run: |
           set -euo pipefail
@@ -106,7 +106,7 @@ jobs:
               }
             end' > release/devtools-artifact.json
       - name: Verify artifact manifest
-        run: pnpm exec vp run -w -v release:devtools-artifact:verify
+        run: vp run -w -v release:devtools-artifact:verify
       - name: Open manifest update PR
         if: github.event_name != 'pull_request'
         env:

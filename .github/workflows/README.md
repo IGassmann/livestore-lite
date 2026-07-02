@@ -14,16 +14,16 @@ checks, TypeScript builds, unit tests, integration tests, Playwright tests,
 performance tests, docs/examples builds, and dev docs/examples deploys.
 
 Deterministic build/check phases that are safe to cache should be modeled as
-Vite+ tasks in `vite.config.ts` and run through `pnpm exec vp run -w -v ...` so CI
+Vite+ tasks in `vite.config.ts` and run through `vp run -w -v ...` so CI
 logs include cache hit/miss summaries. Keep side-effecting work such as deploys,
 hosted-link validation, package publishing, and external search sync as explicit
 uncached workflow/script steps unless the task is split into a cacheable build
 phase and a separate side-effecting phase.
 
-Docs deployment uses `pnpm exec vp run -w -v docs:deploy`. Normal `main` pushes update the dev
+Docs deployment uses `vp run -w -v docs:deploy`. Normal `main` pushes update the dev
 Netlify site, pull requests publish sticky and commit-specific aliases on the
 dev site, and stable release publishing is the only workflow path that updates
-the production docs domain. Use `pnpm exec vp run -w -v docs:deploy -- --plan` when changing deploy
+the production docs domain. Use `vp run -w -v docs:deploy -- --plan` when changing deploy
 routing logic; it prints the resolved site and target without building or
 deploying.
 
