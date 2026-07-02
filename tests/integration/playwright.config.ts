@@ -6,11 +6,11 @@ import { devices } from '@playwright/test'
 import { envTruish } from '@livestore/utils'
 
 /**
- * Ensure Playwright tests are run via the mono CLI (or VS Code extension) to guarantee proper environment setup.
+ * Ensure Playwright tests are run via the repo task script (or VS Code extension) to guarantee proper environment setup.
  */
 const isVSCode = process.env.VSCODE_PID !== undefined
 if (envTruish(process.env.FORCE_PLAYWRIGHT_VIA_CLI) === false && isVSCode === false) {
-  throw new Error(`Playwright tests must be run via 'mono test integration <devtools|todomvc|misc>'.`)
+  throw new Error(`Playwright tests must be run via 'pnpm run test:integration:playwright:suite'.`)
 }
 
 /**

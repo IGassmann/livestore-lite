@@ -20,7 +20,7 @@ type ConfigSetupContext = Parameters<NonNullable<AstroIntegration['hooks']['astr
 type ServerStartContext = Parameters<NonNullable<AstroIntegration['hooks']['astro:server:start']>>[0]
 type BuildStartContext = Parameters<NonNullable<AstroIntegration['hooks']['astro:build:start']>>[0]
 
-/** When set, skip auto-build and watch (snippets are managed externally, e.g. by mono CLI) */
+/** When set, skip auto-build and watch because snippets are managed by repo task scripts. */
 const shouldSkipSnippetAutoBuildAndWatch = () => process.env.LS_SKIP_SNIPPET_AUTO_BUILD_AND_WATCH === '1'
 
 export const createAstroTwoslashCodeIntegration = (options: AstroTwoslashCodeOptions = {}): AstroIntegration => {

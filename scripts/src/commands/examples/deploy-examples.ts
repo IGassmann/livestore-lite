@@ -86,7 +86,7 @@ export const ensureExampleExists = (example: string, available: readonly string[
 export const runExampleTests = (examples: ReadonlyArray<string>, options: { skipMissing?: boolean } = {}) =>
   Effect.gen(function* () {
     /**
-     * Lightweight preflight that mirrors the `mono examples test` command so CI and deploys share
+     * Lightweight preflight that mirrors the `pnpm run examples:test` command so CI and deploys share
      * the same behaviour. We deliberately run sequentially to avoid overwhelming the runner when
      * Vite spins up multiple dev servers.
      */

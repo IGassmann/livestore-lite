@@ -239,7 +239,7 @@ const checkRulesetsCommand = Cli.Command.make(
 
     if (existing === null) {
       console.error(`No live ruleset found with name '${body.name}'`)
-      console.error("Run 'mono github rulesets sync' to create one.")
+      console.error("Run 'node --experimental-strip-types scripts/src/repo-cli.ts github rulesets sync' to create one.")
       process.exitCode = 1
       return
     }
@@ -262,7 +262,9 @@ const checkRulesetsCommand = Cli.Command.make(
 
     console.error(`Ruleset '${body.name}' drift detected against ${getRulesetFilePath()}:`)
     for (const diff of diffs) console.error(`- ${diff}`)
-    console.error("Run 'mono github rulesets sync' with admin permissions to reconcile it.")
+    console.error(
+      "Run 'node --experimental-strip-types scripts/src/repo-cli.ts github rulesets sync' with admin permissions to reconcile it.",
+    )
     process.exitCode = 1
   }),
 ).pipe(Cli.Command.withDescription('Check whether the live GitHub ruleset matches the generated source file'))
@@ -278,7 +280,7 @@ const showRulesetsCommand = Cli.Command.make(
 
     if (existing == null) {
       console.log(`No ruleset found with name '${body.name}'`)
-      console.log(`Run 'mono github rulesets sync' to create one.`)
+      console.log(`Run 'node --experimental-strip-types scripts/src/repo-cli.ts github rulesets sync' to create one.`)
       return
     }
 

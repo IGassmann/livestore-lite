@@ -2,30 +2,27 @@
 
 ## Setup
 
-This repository uses [`devenv`](https://devenv.sh) for development environment management. Run `devenv shell` to enter the development environment.
+This repository uses Node 24 and pnpm 11 for local development. Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `pnpm install` before running repo tasks.
 
 ## Tooling
 
-- If tools aren't directly in `$PATH`, enter the dev environment first with `devenv shell`.
-
 - For dependency management see ./contributor-docs/dependency-management.md
 
-### `mono` CLI
+### Package scripts
 
-Use the `mono` CLI for common workflows:
+Use `pnpm run <task>` for common workflows:
 
-- `pnpm lint` / `pnpm lint:fix` to run the linting checks
-- `pnpm test` or `pnpm test:<unit|integration|perf>` to run the tests
+- `pnpm run lint:full` / `pnpm run lint:full:fix` to run the linting checks
+- `pnpm run test:unit`, `pnpm run test:integration`, or `pnpm run test:perf` to run the tests
   - Some tests can take a while to run.
-- `pnpm typecheck` to build the TypeScript code
-- `pnpm docs:<dev|build>` for common docs workflows
-- `pnpm examples:test` for example tests
-- `pnpm mono -- <command>` for lower-level mono workflows
+- `pnpm run ts:check` to check the TypeScript build
+- `pnpm run docs:dev` / `pnpm run docs:build` for common docs workflows
+- `pnpm run examples:test` for example tests
 - ... and more
 
 ## Testing
 
-- When working on specific Vitest tests, use the `vitest` CLI directly instead of `mono test` and make sure to target the specific test file and test name: e.g. `vitest run packages/@livestore/common/src/index.test.ts --testNamePattern "should be able to get the number of users"`.
+- When working on specific Vitest tests, use the `vitest` CLI directly instead of broader package scripts and make sure to target the specific test file and test name: e.g. `vitest run packages/@livestore/common/src/index.test.ts --testNamePattern "should be able to get the number of users"`.
 
 ## TypeScript
 
@@ -45,7 +42,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ## Git
 
 - The default branch of this repository is `main`.
-- Before committing, run `pnpm lint:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
+- Before committing, run `pnpm run lint:full:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
 
 ### Branch Naming Conventions
 
@@ -55,9 +52,9 @@ Use GitHub issues or an issue checklist for non-trivial work.
 
 ### Development Workflow
 
-- Run the full test suite before pushing: `pnpm test`
-- Ensure TypeScript compilation passes: `pnpm typecheck`
-- Use `pnpm lint:fix` to automatically fix formatting issues
+- Run the full test suite before pushing: `pnpm run test`
+- Ensure TypeScript compilation passes: `pnpm run ts:check`
+- Use `pnpm run lint:full:fix` to automatically fix formatting issues
 
 ### Issues
 
@@ -82,7 +79,7 @@ Checklist:
 
 ### Environment Variables
 
-- Keep sensitive environment variables in `.envrc.local` and never commit them to the repository.
+- Keep sensitive environment variables in a git-ignored local env file and never commit them to the repository.
 
 ## Documentation / Examples
 

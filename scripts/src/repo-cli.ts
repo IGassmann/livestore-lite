@@ -41,13 +41,13 @@ const circularCommand = Cli.Command.make(
   'circular',
   {},
   Effect.fn(function* () {
-    yield* cmd('bunx madge --circular --no-spinner examples/*/src packages/*/*/src', { shell: true }).pipe(
+    yield* cmd('pnpm exec madge --circular --no-spinner examples/*/src packages/*/*/src', { shell: true }).pipe(
       Effect.provide(LivestoreWorkspace.toCwd()),
     )
   }),
 )
 
-const command = Cli.Command.make('mono').pipe(
+const command = Cli.Command.make('repo').pipe(
   Cli.Command.withSubcommands([
     examplesCommand,
     lintCommand,
@@ -63,9 +63,9 @@ const command = Cli.Command.make('mono').pipe(
 )
 
 if (import.meta.main) {
-  // 'CLI for managing the Livestore monorepo',
+  // CLI for managing the LiveStore repository.
   const cli = Cli.Command.run(command, {
-    name: 'mono',
+    name: 'repo',
     version: '0.0.0',
   })
 
@@ -73,7 +73,7 @@ if (import.meta.main) {
     PlatformNode.NodeContext.layer,
     FetchHttpClient.layer,
     OtelLiveHttp({
-      serviceName: 'mono',
+      serviceName: 'repo-cli',
       rootSpanName: 'cli',
       rootSpanAttributes: { 'span.label': process.argv.slice(2).join(' ') },
       skipLogUrl: process.argv.join(' ').includes('--completions'),
@@ -84,7 +84,7 @@ if (import.meta.main) {
 
   cli(process.argv).pipe(
     Effect.provide(layer),
-    Effect.annotateLogs({ thread: 'mono' }),
+    Effect.annotateLogs({ thread: 'repo-cli' }),
     Logger.withMinimumLogLevel(LogLevel.Debug),
     Effect.scoped,
     PlatformNode.NodeRuntime.runMain,

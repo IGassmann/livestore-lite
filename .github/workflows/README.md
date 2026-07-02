@@ -13,10 +13,10 @@ It runs the normal repository quality gates: linting, Changesets release-intent
 checks, TypeScript builds, unit tests, integration tests, Playwright tests,
 performance tests, docs/examples builds, and dev docs/examples deploys.
 
-Docs deployment uses `mono docs deploy`. Normal `main` pushes update the dev
+Docs deployment uses `pnpm run docs:deploy`. Normal `main` pushes update the dev
 Netlify site, pull requests publish sticky and commit-specific aliases on the
 dev site, and stable release publishing is the only workflow path that updates
-the production docs domain. Use `mono docs deploy --plan` when changing deploy
+the production docs domain. Use `pnpm run docs:deploy -- --plan` when changing deploy
 routing logic; it prints the resolved site and target without building or
 deploying.
 

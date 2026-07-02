@@ -1,5 +1,7 @@
+import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
-import { join, normalize } from 'node:path'
+import { createServer, type ServerResponse } from 'node:http'
+import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { buildMarkdownRelativePath, isAssetPath, preferredMarkdown } from '../src/server/markdown-negotiation.ts'
@@ -8,8 +10,8 @@ import { buildMarkdownRelativePath, isAssetPath, preferredMarkdown } from '../sr
  * Netlify Dev only runs edge functions when it proxies to a user-provided
  * origin. The Netlify adapter also disables `astro preview`
  * (https://github.com/withastro/astro/issues/13180), so we spin up this tiny
- * Bun server to serve `dist/` with the right markdown MIME type. That lets the
- * edge handler run locally during `mono docs preview`, mirroring production.
+ * Node server to serve `dist/` with the right markdown MIME type. That lets the
+ * edge handler run locally during docs preview, mirroring production.
  */
 
 interface PreviewOptions {
@@ -106,11 +108,29 @@ const resolveStaticRelative = async (distDir: string, pathname: string): Promise
   return undefined
 }
 
-const createMarkdownResponse = async (
-  distDir: string,
-  url: URL,
-  isHeadRequest: boolean,
-): Promise<Response | undefined> => {
+type PreviewFile = {
+  readonly absolutePath: string
+  readonly headers: Record<string, string>
+}
+
+const contentTypes: Record<string, string> = {
+  '.css': 'text/css; charset=utf-8',
+  '.html': 'text/html; charset=utf-8',
+  '.ico': 'image/x-icon',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.txt': 'text/plain; charset=utf-8',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+}
+
+const createMarkdownFile = async (distDir: string, url: URL): Promise<PreviewFile | undefined> => {
   const relativeMarkdownPath = buildMarkdownRelativePath(url)
   const absolutePath = ensureWithinDist(distDir, relativeMarkdownPath)
   if (absolutePath === undefined) {
@@ -120,20 +140,16 @@ const createMarkdownResponse = async (
     return undefined
   }
 
-  const headers = new Headers({
-    'Content-Type': 'text/markdown; charset=utf-8',
-    Vary: 'Accept',
-  })
-  return isHeadRequest === true
-    ? new Response(null, { status: 200, headers })
-    : new Response(Bun.file(absolutePath), { status: 200, headers })
+  return {
+    absolutePath,
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      Vary: 'Accept',
+    },
+  }
 }
 
-const createStaticResponse = async (
-  distDir: string,
-  relativePath: string,
-  isHeadRequest: boolean,
-): Promise<Response | undefined> => {
+const createStaticFile = async (distDir: string, relativePath: string): Promise<PreviewFile | undefined> => {
   const absolutePath = ensureWithinDist(distDir, relativePath)
   if (absolutePath === undefined) {
     return undefined
@@ -142,71 +158,105 @@ const createStaticResponse = async (
     return undefined
   }
 
-  const file = Bun.file(absolutePath)
-  const headers = new Headers()
-  if (file.type !== '') {
-    headers.set('Content-Type', file.type)
+  const contentType = contentTypes[extname(absolutePath)]
+
+  return {
+    absolutePath,
+    headers: contentType === undefined ? {} : { 'Content-Type': contentType },
+  }
+}
+
+const writeFileResponse = (response: ServerResponse, file: PreviewFile, isHeadRequest: boolean): void => {
+  response.writeHead(200, file.headers)
+  if (isHeadRequest === true) {
+    response.end()
+    return
   }
 
-  return isHeadRequest === true
-    ? new Response(null, { status: 200, headers })
-    : new Response(file, { status: 200, headers })
+  createReadStream(file.absolutePath)
+    .on('error', (error) => {
+      console.error('Preview server failed to stream file:', error)
+      if (response.headersSent === false) {
+        response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
+      }
+      response.end('Internal Server Error')
+    })
+    .pipe(response)
 }
 
 const docsRoot = fileURLToPath(new URL('..', import.meta.url))
 
 const startServer = async (): Promise<void> => {
-  const args = parseArgs(Bun.argv.slice(2))
+  const args = parseArgs(process.argv.slice(2))
   const distDir = join(docsRoot, 'dist')
   if ((await directoryExists(distDir)) === false) {
-    console.error('Docs dist folder not found. Run `mono docs build` first or pass `--build` to the preview command.')
+    console.error(
+      'Docs dist folder not found. Run `pnpm run docs:build` first or pass `--build` to the preview command.',
+    )
     process.exit(1)
   }
 
-  const port = args.port ?? Number.parseInt(Bun.env.PORT ?? '8888', 10)
+  const port = args.port ?? Number.parseInt(process.env.PORT ?? '8888', 10)
   const host = args.host ?? '127.0.0.1'
 
-  const server = Bun.serve({
-    port,
-    hostname: host,
-    fetch: async (request) => {
+  const server = createServer((request, response) => {
+    void (async () => {
       try {
-        const method = request.method.toUpperCase()
+        const method = request.method?.toUpperCase() ?? 'GET'
         const isHeadRequest = method === 'HEAD'
         if (method !== 'GET' && isHeadRequest === false) {
-          return new Response('Method Not Allowed', { status: 405 })
+          response.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' })
+          response.end('Method Not Allowed')
+          return
         }
 
-        const url = new URL(request.url)
-        if (isAssetPath(url.pathname) === false && preferredMarkdown(request.headers.get('Accept')) === true) {
-          const markdownResponse = await createMarkdownResponse(distDir, url, isHeadRequest)
-          if (markdownResponse !== undefined) {
-            return markdownResponse
+        const url = new URL(request.url ?? '/', `http://${request.headers.host ?? `${host}:${String(port)}`}`)
+        const acceptHeader = Array.isArray(request.headers.accept)
+          ? request.headers.accept.join(',')
+          : (request.headers.accept ?? null)
+        if (isAssetPath(url.pathname) === false && preferredMarkdown(acceptHeader) === true) {
+          const markdownFile = await createMarkdownFile(distDir, url)
+          if (markdownFile !== undefined) {
+            writeFileResponse(response, markdownFile, isHeadRequest)
+            return
           }
         }
 
         const staticPath = await resolveStaticRelative(distDir, url.pathname)
         if (staticPath !== undefined) {
-          const staticResponse = await createStaticResponse(distDir, staticPath, isHeadRequest)
-          if (staticResponse !== undefined) {
-            return staticResponse
+          const staticFile = await createStaticFile(distDir, staticPath)
+          if (staticFile !== undefined) {
+            writeFileResponse(response, staticFile, isHeadRequest)
+            return
           }
         }
 
-        return new Response('Not Found', { status: 404 })
+        response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+        response.end('Not Found')
       } catch (error) {
         console.error('Preview server encountered an unexpected error:', error)
-        return new Response('Internal Server Error', { status: 500 })
+        response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
+        response.end('Internal Server Error')
       }
-    },
+    })()
   })
 
-  const resolvedHost = server.hostname ?? host
-  const previewUrl = `http://${resolvedHost}:${server.port}`
+  server.listen(port, host)
+
+  const address = await new Promise<NonNullable<ReturnType<typeof server.address>>>((resolve) => {
+    server.once('listening', () => {
+      resolve(server.address()!)
+    })
+  })
+  const resolvedPort = typeof address === 'string' ? port : address.port
+  const previewUrl = `http://${host}:${String(resolvedPort)}`
   console.log(`Docs preview running at ${previewUrl}`)
   console.log('Press Ctrl+C to stop the server.')
 
-  await server.closed
+  await new Promise<void>((resolve, reject) => {
+    server.once('close', resolve)
+    server.once('error', reject)
+  })
 }
 
 await startServer()

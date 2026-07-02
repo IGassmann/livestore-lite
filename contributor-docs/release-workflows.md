@@ -51,13 +51,13 @@ monorepo.
 Maintainers can dry-run the snapshot publisher locally:
 
 ```bash
-CI=1 mono release snapshot --dry-run --yes
+CI=1 pnpm run release:snapshot -- --dry-run --yes
 ```
 
 To dry-run a snapshot for a specific commit:
 
 ```bash
-CI=1 mono release snapshot --git-sha=<git-sha> --dry-run --yes
+CI=1 pnpm run release:snapshot -- --git-sha=<git-sha> --dry-run --yes
 ```
 
 Local snapshot publishing should be rare; prefer the CI snapshot workflow so npm
@@ -116,8 +116,7 @@ automation and then validated by CI before auto-merge.
 
 Alongside `release/release-plan.json`, the release PR generator extracts the
 current version's `CHANGELOG.md` section into `release/release-notes.md` via
-the `release:notes:extract` task (which calls
-`mono release extract-release-notes`). The extracted file is committed to the
+the `release:notes:extract` task. The extracted file is committed to the
 release-plan PR so reviewers see exactly what will land on the GitHub Release
 page.
 
@@ -135,7 +134,7 @@ falls back to the legacy `Release <version>` body and logs a warning. To
 refresh it locally for a planned release:
 
 ```bash
-mono release extract-release-notes
+pnpm run release:notes:extract
 ```
 
 This reads the version from `release/release-plan.json` and writes
@@ -164,15 +163,15 @@ After merge to `main`, the push-triggered workflow runs:
 
 ### Prod docs deploy phase split
 
-The prod docs deploy was previously a single `mono docs deploy --prod --build
---purge-cdn` invocation. It hung reproducibly for the 0.4.0 release because the
+The prod docs deploy was previously a single `pnpm run docs:deploy:prod`
+invocation. It hung reproducibly for the 0.4.0 release because the
 tldraw diagram renderer (via `@kitschpatrol/tldraw-cli` + Puppeteer) can leave
-an orphan Chromium child that keeps the parent Bun/Node process alive
+an orphan Chromium child that keeps the parent Node process alive
 indefinitely. See [#1279](https://github.com/livestorejs/livestore/issues/1279)
 for the original incident.
 
 The deploy is split into three phases, each run as a separate
-`docs:deploy:prod:phase:*` package script. Every phase wraps its mono invocation with
+`docs:deploy:prod:phase:*` package script. Every phase wraps the deploy command with
 `timeout --signal=TERM --kill-after=2m N`, so the OS reaps the entire process
 group (including orphan Chromium) regardless of what the Effect-level handler
 is doing. A background heartbeat writes `[docs-prod-heartbeat] <iso8601>
@@ -186,11 +185,11 @@ plus serverless + edge bundling) and the upload in one bounded step. The build
 still spawns Chromium for mermaid, so the `timeout(1)` wrapper around this one
 phase remains the orphan-Chromium backstop.
 
-| Phase          | Task                                  | Purpose                                                                                             |
-| -------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `build-deploy` | `docs:deploy:prod:phase:build-deploy` | `mono docs deploy --prod --step=upload` (runs `netlify deploy --build`), writes `deploy-state.json` |
-| `verify`       | `docs:deploy:prod:phase:verify`       | `mono docs deploy --prod --step=verify`, posts job summary                                          |
-| `purge`        | `docs:deploy:prod:phase:purge`        | `mono docs deploy --prod --step=purge`, purges Netlify CDN                                          |
+| Phase          | Task                                  | Purpose                                                              |
+| -------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| `build-deploy` | `docs:deploy:prod:phase:build-deploy` | Uploads with `netlify deploy --build` and writes `deploy-state.json` |
+| `verify`       | `docs:deploy:prod:phase:verify`       | Verifies the deployed docs and posts a job summary                   |
+| `purge`        | `docs:deploy:prod:phase:purge`        | Purges the Netlify CDN                                               |
 
 The `build-deploy` phase writes Netlify identifiers to `tmp/ci-docs-prod/deploy-state.json`
 so `verify` and `purge` can run as independent processes (and independent Actions

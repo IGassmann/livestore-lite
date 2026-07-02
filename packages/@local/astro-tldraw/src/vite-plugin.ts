@@ -49,7 +49,8 @@ const diagramComponentSpecifier = (() => {
   return `/@fs${normalized}`
 })()
 
-const formatRebuildInstruction = (): string => 'Please run `mono docs diagrams build` to regenerate the cache.'
+const formatRebuildInstruction = (): string =>
+  'Please run `pnpm run docs:build:phase:diagrams` to regenerate the cache.'
 
 const createComponentModuleSource = (serializedPayload: string, componentSpecifier: string): string =>
   [

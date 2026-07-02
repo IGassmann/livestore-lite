@@ -27,8 +27,6 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 
-.direnv
-
 # build output
 src/content/docs/api/*
 !src/content/docs/api/index.md

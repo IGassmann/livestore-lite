@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S node --experimental-strip-types
 
 /**
  * Dependency Update Script - Consistent dependency management for monorepo
@@ -114,7 +114,7 @@ const discoverUpdates = (target: string) =>
     Effect.gen(function* () {
       yield* Console.log(`Discovering available updates (target: ${target})...`)
 
-      const ncuCommand = `bunx npm-check-updates --deep --jsonUpgraded --packageManager pnpm${target !== 'latest' ? ` --target ${target}` : ''}`
+      const ncuCommand = `pnpm dlx npm-check-updates --deep --jsonUpgraded --packageManager pnpm${target !== 'latest' ? ` --target ${target}` : ''}`
       const ncuOutput = yield* cmdText(ncuCommand).pipe(
         Effect.provide(LivestoreWorkspace.toCwd()),
         Effect.catchAll(

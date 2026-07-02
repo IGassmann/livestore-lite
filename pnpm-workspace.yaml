@@ -108,8 +108,6 @@ injectWorkspacePackages: false
 
 enableGlobalVirtualStore: true
 
-storeDir: .devenv/pnpm-store-pure-v1
-
 packageImportMethod: clone-or-copy
 
 optimisticRepeatInstall: false
