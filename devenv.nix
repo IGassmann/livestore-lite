@@ -207,55 +207,9 @@ in
     # Shared task modules from effect-utils
     (taskModules.megarepo { syncAll = !ci; })
     (taskModules.ts { tsconfigFile = "tsconfig.dev.json"; })
-    (taskModules.check {
-      hasTests = false;
-      hasNixCheck = false;
-    })
     (taskModules.clean {
       packages = pnpmPackages;
       extraDirs = [ ".astro" ];
-    })
-    # Lint tasks come from lint-oxc plus local aggregate wrappers.
-    (taskModules.lint-oxc {
-      lintPaths = [
-        "packages"
-        "tests"
-        "scripts"
-        "docs"
-        ".github"
-      ];
-      execIfModifiedPatterns = [
-        # packages/@livestore
-        "packages/@livestore/*/src/**/*.ts"
-        "packages/@livestore/*/src/**/*.tsx"
-        "packages/@livestore/*/src/**/*.js"
-        "packages/@livestore/*/src/**/*.jsx"
-        "packages/@livestore/*/*.ts"
-        "packages/@livestore/*/*.js"
-        "packages/@livestore/*/bin/*.ts"
-        "packages/@livestore/*/examples/*/*.ts"
-        "packages/@livestore/*/examples/*/*.tsx"
-        "packages/@livestore/*/examples/*/src/**/*.ts"
-        "packages/@livestore/*/examples/*/src/**/*.tsx"
-        # packages/@local
-        "packages/@local/*/src/**/*.ts"
-        "packages/@local/*/src/**/*.tsx"
-        "packages/@local/*/*.ts"
-        "packages/@local/*/*.js"
-        # tests
-        "tests/**/*.ts"
-        "tests/**/*.tsx"
-        # scripts
-        "scripts/**/*.ts"
-        "scripts/**/*.js"
-        # docs
-        "docs/src/**/*.ts"
-        "docs/src/**/*.tsx"
-        # linter configs
-        ".oxfmtrc.json"
-        ".oxlintrc.json"
-      ];
-      tsconfig = "tsconfig.dev.json";
     })
     (taskModules.ts-effect-lsp {
       tsconfigFile = "tsconfig.dev.json";
@@ -338,13 +292,6 @@ in
   );
 
   cachix.pull = [ "livestore" ];
-
-  # TODO(upstream): Remove once https://github.com/cachix/devenv/pull/2423 lands.
-  # devenv-tasks' glob crate traverses into node_modules for exec_if_modified patterns,
-  # hashing ~243k files instead of ~800 source files (~10 min overhead per task).
-  # Since oxfmt/oxlint finish in <2s, always running them is faster than broken caching.
-  tasks."lint:check:format".execIfModified = lib.mkForce [ ];
-  tasks."lint:check:oxlint".execIfModified = lib.mkForce [ ];
 
   tasks."release:devtools-artifact:verify" = {
     description = "Verify a public LiveStore DevTools artifact handoff";
@@ -459,8 +406,6 @@ in
       bun scripts/src/commands/changesets.ts verify-baseline-changelog
     '';
   };
-
-  # NOTE: check:quick is provided by effect-utils taskModules.check.
 
   git-hooks.enable = true;
   git-hooks.hooks.check-quick = {
