@@ -61,6 +61,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Build TypeScript packages
+        run: pnpm run ts:build
       - name: Run unit tests
         run: pnpm run test:unit
   test-integration-sync-provider:
@@ -212,6 +214,8 @@ jobs:
         run: pnpm run examples:install
       - name: Build examples
         run: pnpm run examples:build:src
+      - name: Install example Playwright browsers
+        run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
       - name: Test examples
         run: pnpm run examples:test
       - id: deploy-examples
@@ -240,6 +244,8 @@ jobs:
         run: pnpm run ts:build
       - name: Build docs snippets
         run: pnpm run docs:build:phase:snippets
+      - name: Install tldraw Chrome
+        run: pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome
       - name: Build docs diagrams
         run: pnpm run docs:build:phase:diagrams
       - name: Build Astro docs bundle

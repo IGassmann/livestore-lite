@@ -35,6 +35,7 @@
     "@types/node": "25.3.3",
     "astro": "6.4.6",
     "effect": "3.21.2",
+    "puppeteer": "24.43.1",
     "vitest": "3.2.4"
   },
   "peerDependencies": {
