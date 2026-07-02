@@ -367,12 +367,16 @@ const docsBuildCommand = Cli.Command.make(
     // Temporary workaround for https://github.com/livestorejs/livestore/issues/1377.
     // Astro 6 imports @astrojs/check from Astro's virtual-store package context, so run sync + astro-check
     // directly until the Astro/Vite package stack is upgraded.
-    yield* cmd('pnpm astro sync', { env: astroEnv }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
-    yield* cmd('pnpm exec astro-check', { env: astroEnv }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
+    yield* cmd(['vp', 'exec', 'astro', 'sync'], { env: astroEnv }).pipe(
+      Effect.provide(LivestoreWorkspace.toCwd('docs')),
+    )
+    yield* cmd(['vp', 'exec', 'astro-check'], { env: astroEnv }).pipe(
+      Effect.provide(LivestoreWorkspace.toCwd('docs')),
+    )
 
     // Local/CI prebuild uses Astro directly. The deploy step performs the
     // Netlify build (single build overall), which handles Edge bundling.
-    yield* cmd('pnpm astro build', { env: astroEnv }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
+    yield* cmd(['vp', 'exec', 'astro', 'build'], { env: astroEnv }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
     yield* cleanupChromiumChildren()
   }, Effect.scoped),
 )
@@ -537,7 +541,7 @@ export const docsCommand = Cli.Command.make('docs').pipe(
         }
 
         /* Run Astro dev server */
-        yield* cmd(['pnpm', 'astro', 'dev', open === true ? '--open' : undefined], {
+        yield* cmd(['vp', 'exec', 'astro', 'dev', open === true ? '--open' : undefined], {
           logDir: `${docsPath}/logs`,
         }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
       }),
@@ -593,7 +597,7 @@ export const docsCommand = Cli.Command.make('docs').pipe(
           netlifyArgs.push('--port', String(requestedPort))
         }
 
-        yield* cmd(['pnpm', 'dlx', ...netlifyArgs], {
+        yield* cmd(['vp', 'dlx', ...netlifyArgs], {
           logDir: `${docsPath}/logs`,
           env: {
             NODE_ENV: 'production',
