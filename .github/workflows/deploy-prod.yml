@@ -39,8 +39,25 @@ jobs:
           echo "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-2.grafana.net/otlp" >> $GITHUB_ENV
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
+      - id: docs-snippet-cache-key
+        name: Compute docs snippet cache key
+        uses: ./.github/actions/docs-snippet-cache-key
+      - id: docs-snippet-cache
+        name: Restore docs snippet cache
+        uses: actions/cache/restore@v6
+        with:
+          path: docs/node_modules/.astro-twoslash-code
+          key: ${{ steps.docs-snippet-cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.docs-snippet-cache-key.outputs.restore-key }}
       - name: Build + deploy docs to Netlify
         run: pnpm run docs:deploy:prod:phase:build-deploy
+      - name: Save docs snippet cache
+        if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: docs/node_modules/.astro-twoslash-code
+          key: ${{ steps.docs-snippet-cache-key.outputs.key }}
       - name: Verify docs deploy
         run: pnpm run docs:deploy:prod:phase:verify
       - name: Purge Netlify CDN

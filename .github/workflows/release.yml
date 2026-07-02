@@ -275,10 +275,29 @@ jobs:
           if-no-files-found: ignore
       - name: Publish DevTools artifact release
         run: pnpm run release:devtools-artifact:publish:no-install
+      - id: docs-snippet-cache-key
+        name: Compute docs snippet cache key
+        if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
+        uses: ./.github/actions/docs-snippet-cache-key
+      - id: docs-snippet-cache
+        name: Restore docs snippet cache
+        if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
+        uses: actions/cache/restore@v6
+        with:
+          path: docs/node_modules/.astro-twoslash-code
+          key: ${{ steps.docs-snippet-cache-key.outputs.key }}
+          restore-keys: |
+            ${{ steps.docs-snippet-cache-key.outputs.restore-key }}
       - name: Deploy production docs — build + deploy
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 30
         run: pnpm run docs:deploy:prod:phase:build-deploy
+      - name: Save docs snippet cache
+        if: ${{ success() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v6
+        with:
+          path: docs/node_modules/.astro-twoslash-code
+          key: ${{ steps.docs-snippet-cache-key.outputs.key }}
       - name: Deploy production docs — verify
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 15
