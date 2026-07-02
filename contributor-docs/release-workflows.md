@@ -172,7 +172,7 @@ indefinitely. See [#1279](https://github.com/livestorejs/livestore/issues/1279)
 for the original incident.
 
 The deploy is split into three phases, each run as a separate
-`docs:deploy:prod:phase:*` Nix task. Every phase wraps its mono invocation with
+`docs:deploy:prod:phase:*` package script. Every phase wraps its mono invocation with
 `timeout --signal=TERM --kill-after=2m N`, so the OS reaps the entire process
 group (including orphan Chromium) regardless of what the Effect-level handler
 is doing. A background heartbeat writes `[docs-prod-heartbeat] <iso8601>

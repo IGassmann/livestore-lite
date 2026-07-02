@@ -197,8 +197,6 @@ let
 in
 {
   imports = [
-    # Legacy devenv task command for running the remaining Nix task graph
-    effectUtils.devenvModules.dt
     # OTEL observability stack with livestore-specific dashboards
     # Keep release/task automation independent from user machine-level OTEL
     # dashboard sync state. System OTEL remains useful for interactive shells,
@@ -217,7 +215,7 @@ in
       packages = pnpmPackages;
       extraDirs = [ ".astro" ];
     })
-    # Lint tasks are dt-native via lint-oxc plus local aggregate wrappers.
+    # Lint tasks come from lint-oxc plus local aggregate wrappers.
     (taskModules.lint-oxc {
       lintPaths = [
         "packages"
@@ -271,8 +269,6 @@ in
         "ts:build"
       ];
     })
-    # Local task wrappers retained while package.json scripts become the primary interface
-    ./nix/devenv-modules/tasks/local/mono-wrappers.nix
     ./nix/devenv-modules/tasks/local/github-rulesets.nix
   ];
 
