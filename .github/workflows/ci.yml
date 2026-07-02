@@ -260,6 +260,8 @@ jobs:
       - name: Build docs snippets
         run: pnpm run docs:build:phase:snippets
       - name: Install tldraw Chrome
+        env:
+          PUPPETEER_CACHE_DIR: ${{ runner.temp }}/puppeteer
         run: pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome
       - name: Build docs diagrams
         run: pnpm run docs:build:phase:diagrams
