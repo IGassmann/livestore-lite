@@ -107,9 +107,9 @@ allowBuilds:
   workerd: true
 
 supportedArchitectures:
-  os: [ linux, darwin ]
-  cpu: [ x64, arm64 ]
-  libc: [ glibc, musl ]
+  os: [linux, darwin]
+  cpu: [x64, arm64]
+  libc: [glibc, musl]
 
 dedupePeerDependents: true
 
