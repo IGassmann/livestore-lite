@@ -5,14 +5,14 @@ import path from 'node:path'
 import semver from 'semver'
 
 const usage = `Usage:
-  bun scripts/src/commands/changesets.ts check-pr [--base <ref>]
-  bun scripts/src/commands/changesets.ts check-bodies
-  bun scripts/src/commands/changesets.ts restore-prerelease-changesets
-  bun scripts/src/commands/changesets.ts sync-version-source
-  bun scripts/src/commands/changesets.ts sync-standalone-consumers
-  bun scripts/src/commands/changesets.ts write-release-plan [--npm-tag <tag>]
-  bun scripts/src/commands/changesets.ts assert-fixed-versions
-  bun scripts/src/commands/changesets.ts verify-baseline-changelog
+  node --experimental-strip-types scripts/src/commands/changesets.ts check-pr [--base <ref>]
+  node --experimental-strip-types scripts/src/commands/changesets.ts check-bodies
+  node --experimental-strip-types scripts/src/commands/changesets.ts restore-prerelease-changesets
+  node --experimental-strip-types scripts/src/commands/changesets.ts sync-version-source
+  node --experimental-strip-types scripts/src/commands/changesets.ts sync-standalone-consumers
+  node --experimental-strip-types scripts/src/commands/changesets.ts write-release-plan [--npm-tag <tag>]
+  node --experimental-strip-types scripts/src/commands/changesets.ts assert-fixed-versions
+  node --experimental-strip-types scripts/src/commands/changesets.ts verify-baseline-changelog
 `
 
 const parseArgs = (argv: ReadonlyArray<string>) => {

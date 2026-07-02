@@ -14,7 +14,7 @@ playwright-report
 # Process IDs
 *.pid
 
-.envrc.*
+.env.local
 
 tmp*
 dist
@@ -25,7 +25,6 @@ dist
 
 *.db
 
-.direnv
 .pnpm-store/
 repos/
 
@@ -48,9 +47,6 @@ _tmp*
 .tanstack
 .output
 
-scripts/.completions
-
-.devenv*
 .pre-commit-config.yaml
 
 # Generated markdown bundle embedded into @livestore/livestore

@@ -103,16 +103,16 @@ These warnings are normal and can be ignored:
 
 After dependency updates, verify these meta-items:
 
-- [ ] `bunx expo install --check` passes for all Expo examples
+- [ ] `pnpm dlx expo install --check` passes for all Expo examples
 - [ ] Version constants updated appropriately
-- [ ] TypeScript build passes: `pnpm typecheck`
-- [ ] Linting passes: `pnpm lint` (run `pnpm lint:fix` if needed)
+- [ ] TypeScript build passes: `pnpm run ts:check`
+- [ ] Linting passes: `pnpm run lint:full` (run `pnpm run lint:full:fix` if needed)
 
 ## Troubleshooting
 
-**"Command not found" errors:** Enter `devenv shell` or use `devenv shell <command>` if the required tool is not available in your parent shell.
+**"Command not found" errors:** Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `pnpm install` from the repository root.
 
-**Script execution issues:** Ensure TypeScript builds pass: `pnpm typecheck`
+**Script execution issues:** Ensure TypeScript builds pass: `pnpm run ts:check`
 
 **Expo compatibility:** Check [Expo SDK docs](https://docs.expo.dev/versions/latest/) before updating React
 

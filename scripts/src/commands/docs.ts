@@ -22,7 +22,8 @@ import { emitWorkflowReportRecord, nowIsoUtc } from '../shared/workflow-report.t
 import { exportMarkdownCommand } from './docs-export.ts'
 
 const workspaceRoot =
-  process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Make sure to run 'direnv allow'`)
+  process.env.WORKSPACE_ROOT ??
+  shouldNeverHappen(`WORKSPACE_ROOT is not set. Run docs commands through package scripts`)
 const docsPath = `${workspaceRoot}/docs`
 const isGithubAction = process.env.GITHUB_ACTIONS === 'true'
 
@@ -208,9 +209,9 @@ const formatDocsDeploymentSummaryMarkdown = ({
 
 /**
  * Tldraw diagram rendering (via @kitschpatrol/tldraw-cli/Puppeteer) can leave a Chromium
- * child alive after work completes, keeping `mono docs build` hanging in CI
+ * child alive after work completes, keeping `pnpm run docs:build` hanging in CI
  * (e.g. https://github.com/livestorejs/livestore/actions/runs/19968500091/job/57266669492).
- * This helper force-kills Chromium children of the current mono process in the docs CWD.
+ * This helper force-kills Chromium children of the current repo CLI process in the docs CWD.
  */
 const cleanupChromiumChildren = Effect.fn('docs.cleanup-chromium-children')(function* () {
   const parentPid = String(process.pid)
@@ -496,12 +497,12 @@ export const docsCommand = Cli.Command.make('docs').pipe(
         const distPath = `${docsPath}/dist`
         if (fs.existsSync(distPath) === false) {
           yield* Effect.logWarning(
-            `Docs dist folder not found at ${distPath}. Run 'mono docs build' or pass '--build' to 'mono docs preview'.`,
+            `Docs dist folder not found at ${distPath}. Run 'pnpm run docs:build' or pass '--build' to the preview command.`,
           )
         }
 
         const previewScript = `${docsPath}/scripts/preview-server.ts`
-        // Netlify Dev requires a target application server; we launch the Bun
+        // Netlify Dev requires a target application server; we launch the Node
         // preview server so the edge runtime can proxy to `dist/` just like it
         // does in production.
         const netlifyArgs: string[] = [
@@ -510,7 +511,7 @@ export const docsCommand = Cli.Command.make('docs').pipe(
           '--context',
           'production',
           '--command',
-          `bun ${previewScript} --host=127.0.0.1 --port ${previewTargetPort}`,
+          `node --experimental-strip-types ${previewScript} --host=127.0.0.1 --port ${previewTargetPort}`,
           '--target-port',
           String(previewTargetPort),
           '--no-open',
@@ -520,7 +521,7 @@ export const docsCommand = Cli.Command.make('docs').pipe(
           netlifyArgs.push('--port', String(requestedPort))
         }
 
-        yield* cmd(['bunx', ...netlifyArgs], {
+        yield* cmd(['pnpm', 'dlx', ...netlifyArgs], {
           logDir: `${docsPath}/logs`,
           env: {
             NODE_ENV: 'production',

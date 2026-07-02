@@ -468,7 +468,7 @@ See the [S2 sync provider docs](https://dev.docs.livestore.dev/reference/syncing
 
 - **New example: CF Chat:** A Cloudflare Durable Objects chat example demonstrates WebSocket sync, reactive message handling, and bot integrations across client React components and Durable Object services.
 - Cloudflare examples now default to DO SQLite storage. D1 usage is documented via an explicit binding and a one‑line `storage` option in code.
-- **Cloudflare Workers deployments:** `mono examples deploy` now provisions Worker targets so DO-backed demos stay current across prod and dev environments (#690, #735).
+- **Cloudflare Workers deployments:** `pnpm run examples:deploy` now provisions Worker targets so DO-backed demos stay current across prod and dev environments (#690, #735).
 - Add Netlify dev deployments for examples to simplify testing (#684).
 - **Svelte integration docs:** Added the Svelte framework guide plus the Svelte TodoMVC example so `@livestore/svelte` is documented alongside React and Solid.
 - Use Twoslash for select getting started snippets in docs (#658).
@@ -505,7 +505,7 @@ See the [S2 sync provider docs](https://dev.docs.livestore.dev/reference/syncing
 #### Development Tooling
 
 - **Strict peer dep composition:** Added `@effect/vitest` to `utilsEffectPeerDeps` and `@livestore/peer-deps`, and deduplicated the peer-deps package to derive its dependency list from the canonical `utilsEffectPeerDeps` source ([#1107](https://github.com/livestorejs/livestore/issues/1107)).
-- **Hosted example link validation:** Maintainers now have a shared deployment metadata source and `mono examples validate-links` check so docs and example deployments can catch stale first-party demo URLs before publishing ([#1244](https://github.com/livestorejs/livestore/issues/1244)).
+- **Hosted example link validation:** Maintainers now have a shared deployment metadata source and `pnpm run examples:validate-links` check so docs and example deployments can catch stale first-party demo URLs before publishing ([#1244](https://github.com/livestorejs/livestore/issues/1244)).
 - **Chrome DevTools extension assets restored:** Restored `qrcode-generator` 2.0.4 in `@livestore/utils` and included the Chrome DevTools extension assets in the release artifact flow so the published DevTools package contains the Chrome extension build alongside the Vite plugin ([#1215](https://github.com/livestorejs/livestore/pull/1215)).
 - Migration from ESLint to Biome for improved performance (#447)
 - Automated dependency management with Renovate
@@ -513,7 +513,7 @@ See the [S2 sync provider docs](https://dev.docs.livestore.dev/reference/syncing
 - Comprehensive dependency update script (#516)
 - Add GitHub issue templates to improve issue quality (#602)
 - Reworked the documentation tooling so maintainers continuously publish token-efficient, TypeScript-backed snippets that stay reliable for coding agents (#715)
-- **Snapshot release confirmation prompt:** The `mono release snapshot` command now prompts for confirmation before publishing. Pass `--yes` to skip the prompt in scripts and CI. The prompt is also auto-skipped when `CI` is set (#1049).
+- **Snapshot release confirmation prompt:** The `pnpm run release:snapshot` command now prompts for confirmation before publishing. Pass `--yes` to skip the prompt in scripts and CI. The prompt is also auto-skipped when `CI` is set (#1049).
 - **Prod docs deploy phase split:** The stable-release docs deploy is now split into six independently-timed phases (snippets, diagrams, astro, upload, verify, purge), each wrapped in an OS-level `timeout(1)` + heartbeat. This caps orphan Chromium children from the tldraw renderer at the OS boundary so a single hang no longer blocks the post-publish release flow. A new `deploy-prod.yml` workflow lets operators re-dispatch a single failing target (`gh workflow run deploy-prod.yml -f target=docs`) without re-running the entire publish chain ([#1279](https://github.com/livestorejs/livestore/issues/1279)).
 
 #### wa-sqlite Integration

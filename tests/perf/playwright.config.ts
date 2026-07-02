@@ -3,11 +3,11 @@ import * as process from 'node:process'
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Ensure Playwright tests are run via the mono CLI (or VS Code extension) to guarantee proper environment setup.
+ * Ensure Playwright tests are run via the repo task script (or VS Code extension) to guarantee proper environment setup.
  */
 const isVSCode = process.env.VSCODE_PID !== undefined
 if (process.env.FORCE_PLAYWRIGHT_VIA_CLI !== '1' && isVSCode === false) {
-  throw new Error(`Playwright tests must be run via 'mono test perf'.`)
+  throw new Error(`Playwright tests must be run via 'pnpm run test:perf'.`)
 }
 
 /**

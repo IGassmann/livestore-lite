@@ -96,9 +96,9 @@ type ArtifactManifestV2 = {
 export type ArtifactManifest = ArtifactManifestV1 | ArtifactManifestV2
 
 const usage = `Usage:
-  bun scripts/src/commands/devtools-artifact.ts verify (--manifest <file> | --metadata <url-or-file> --tarball <url-or-file>)
-  bun scripts/src/commands/devtools-artifact.ts certify --manifest <file> --version <version> --out <file> [--evidence <text>]
-  bun scripts/src/commands/devtools-artifact.ts repack --manifest <file> --version <version> [--certification <file>|--allow-uncertified] [--dry-run|--publish]
+  node --experimental-strip-types scripts/src/commands/devtools-artifact.ts verify (--manifest <file> | --metadata <url-or-file> --tarball <url-or-file>)
+  node --experimental-strip-types scripts/src/commands/devtools-artifact.ts certify --manifest <file> --version <version> --out <file> [--evidence <text>]
+  node --experimental-strip-types scripts/src/commands/devtools-artifact.ts repack --manifest <file> --version <version> [--certification <file>|--allow-uncertified] [--dry-run|--publish]
 
 Options:
   --manifest <file>        Checked-in public artifact manifest.
@@ -587,7 +587,7 @@ const materializeChromeZipAsset = (version: string, chromeZipPath: string, workD
 }
 
 /**
- * Resolves the release notes file emitted by `mono release extract-release-notes`.
+ * Resolves the release notes file emitted by `pnpm run release:notes:extract`.
  * Returns `undefined` (with a warning) when the file is missing so DevTools-artifact
  * publishing remains unblocked. In that case the GitHub Release falls back to the
  * legacy `Release <version>` body.
@@ -598,7 +598,7 @@ const resolveReleaseNotesPath = (version: string): string | undefined => {
   if (existsSync(candidate) === false) {
     console.warn(
       `[publishChromeZipReleaseAsset] release/release-notes.md not found for v${version}; ` +
-        'falling back to "Release <version>" body. Run `mono release extract-release-notes` to populate it.',
+        'falling back to "Release <version>" body. Run `pnpm run release:notes:extract` to populate it.',
     )
     return undefined
   }

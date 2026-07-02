@@ -1418,7 +1418,7 @@ const summarizeWatchEvent = (
 
 /**
  * CLI entry-point that pre-renders all snippet bundles and emits artefacts + manifest.
- * This command runs before `mono docs build` to guarantee cached HTML is available during Astro builds.
+ * This command runs before `pnpm run docs:build` to guarantee cached HTML is available during Astro builds.
  */
 const buildSnippetsInternal = ({ paths, runtimeOptions }: ResolvedBuildOptions) =>
   Effect.gen(function* () {

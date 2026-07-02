@@ -20,85 +20,36 @@ experience is recommended:
 - Experience with TypeScript monorepo setups
 - Experience with distributed systems
 
-### Required tooling: Nix + devenv
+### Required tooling: Node + pnpm
 
-LiveStore requires [Nix](https://nixos.org/) with [devenv](https://devenv.sh)
-to manage all development dependencies (Node.js, Bun, pnpm, oxlint, OTEL stack,
-Playwright browsers, etc.). Enter the development shell with `devenv shell`.
+LiveStore repo tooling runs on [Node.js](https://nodejs.org/) 24 and
+[pnpm](https://pnpm.io/) 11. The repository pins pnpm via `packageManager`, and
+repo scripts invoke TypeScript tooling through Node's built-in type stripping.
 
-#### Why this is a hard requirement
+Install Node 24, then activate pnpm with Corepack:
 
-LiveStore is developed alongside a family of projects that share tooling
-through [`effect-utils`](https://github.com/overengineeringstudio/effect-utils)
-— a Nix flake that provides the exact oxlint (with custom plugins),
-`megarepo` CLI, OTEL dashboards, and
-Playwright integration used here. Standing this up outside of Nix/devenv
-means reimplementing a moving target and drifting from CI.
+```bash
+corepack enable
+corepack prepare pnpm@11.3.0 --activate
+```
 
-By requiring Nix + devenv we get:
-
-- **Version parity with CI and every other LiveStore/effect-utils project** —
-  the same compiler, linter, and task-runner versions everywhere.
-- **Reproducible builds** — no "works on my machine" drift between
-  contributors.
-- **Single source of truth** — tool versions live in `devenv.nix`, not
-  scattered across READMEs.
-
-#### Install Nix
-
-We recommend the
-[Determinate Nix Installer](https://docs.determinate.systems/determinate-nix/)
-— it sets sane defaults, enables flakes out of the box, and is easy to
-uninstall. Any Nix install with flakes enabled works; Determinate is simply
-the path of least resistance.
-
-After installing Nix, install
-[devenv](https://devenv.sh/getting-started/) following its install guide.
-
-(Optional) If you prefer the dev environment to auto-load when you `cd`
-into the repo, also install [direnv](https://direnv.net) — the repo ships
-an `.envrc` that wires devenv into direnv. Not required.
-
-### Manual setup (discouraged)
-
-It is technically possible to set up the toolchain manually (Node.js, Bun,
-pnpm, etc.), but this path is **not supported**: you'll diverge from CI,
-miss linter plugins, and have to track tool versions by hand. Use Nix +
-devenv unless you have a very specific reason not to.
+Some package-specific build infrastructure may still use its own tooling. For
+example, the wa-sqlite package keeps its package-local Nix flake until a
+validated non-Nix build path exists. The general repository task interface is
+still `pnpm run <task>`.
 
 ## Initial setup
 
 ```bash
 git clone git@github.com:livestorejs/livestore.git
 cd livestore
-devenv shell
+corepack enable
+corepack prepare pnpm@11.3.0 --activate
+pnpm install
 ```
 
-Entering the shell builds the Nix environment, puts the full toolchain
-(Node.js, Bun, pnpm, `mono`, oxlint, oxfmt, etc.) on `$PATH`, and
-runs the project `setup` task (which installs pnpm deps and builds TypeScript).
-
-## Working with devenv
-
-`devenv shell` is the primary entry point. Everything the repo provides —
-packages, env vars, tasks, background processes — comes from `devenv.nix`
-and is surfaced through the devenv CLI:
-
-- `devenv shell` — open an interactive subshell with the full dev
-  environment. Type `exit` to leave. Re-run after closing the terminal.
-- `devenv shell <cmd> [args...]` — run a single command inside the
-  environment without staying in the subshell. Useful for scripts and
-  CI (`devenv shell pnpm typecheck`).
-- `pnpm run` — list package scripts exposed by `package.json` (see
-  [Common commands](#common-commands) below for the most-used ones).
-- `pnpm run <task>` — run one of the repo task scripts directly. The project's
-  pre-commit hook uses this (`pnpm run check:quick`).
-- `devenv up` — start long-running processes defined in `devenv.nix`
-  (e.g. the local OTEL stack — see [OpenTelemetry setup](#opentelemetry-setup)).
-- `devenv info` — print a summary of what the current environment
-  provides (packages, env vars, processes, tasks). Handy when debugging.
-
-See the [devenv docs](https://devenv.sh) for the full CLI reference.
+Use `pnpm run` to list available package scripts, and run repository tasks with
+`pnpm run <task>`.
 
 ## General notes
 
@@ -118,37 +69,31 @@ See the [devenv docs](https://devenv.sh) for the full CLI reference.
 - [TypeScript](https://www.typescriptlang.org/)
 - [Effect](https://effect.website)
 - [pnpm](https://pnpm.io/)
-- [Bun](https://bun.sh/)
 - [Vitest](https://vitest.dev/)
 - [Playwright](https://playwright.dev/)
 - [OpenTelemetry](https://opentelemetry.io/)
 - [wa-sqlite](https://github.com/rhashimoto/wa-sqlite) (included as git subtree) - see [wa-sqlite management](../../../../../../contributor-docs/wa-sqlite-management.md)
-- [Nix](https://zero-to-nix.com/)
-- [devenv](https://devenv.sh)
 
 ### Environment variables
 
-Project env vars are declared in `devenv.nix` and set by `devenv shell`.
-For local overrides (credentials, custom service endpoints), export them
-in your parent shell before running `devenv shell` — they propagate
-through. If you use direnv, the repo's `.envrc` sources a git-ignored
-`.envrc.local` for the same purpose.
+Set local credentials and custom service endpoints in your shell before running
+tasks. Keep sensitive overrides in a git-ignored local env file; never commit
+them.
 
 ### Common commands
 
 Run common workflows through package scripts from the repository root:
 
-- `pnpm typecheck` — build/check TypeScript across the monorepo
-- `pnpm lint` / `pnpm lint:fix` — run or auto-fix lint + format checks
-- `pnpm test:unit` / `pnpm test:integration` / `pnpm test:perf` — run test suites
-- `pnpm docs:dev` / `pnpm docs:build` — common docs workflows
-- `pnpm examples:test` — example validation
+- `pnpm run ts:check` — build/check TypeScript across the monorepo
+- `pnpm run lint:full` / `pnpm run lint:full:fix` — run or auto-fix lint + format checks
+- `pnpm run test:unit` / `pnpm run test:integration` / `pnpm run test:perf` — run test suites
+- `pnpm run docs:dev` / `pnpm run docs:build` — common docs workflows
+- `pnpm run examples:test` — example validation
 - `pnpm run release:changeset:status` — inspect release status
-- `pnpm run task -- --help` — list compatibility task shims
+- `pnpm run task -- --help` — list task shims
 
-Most package scripts delegate to the repo's `mono` command or to a small
-compatibility shim in `scripts/src/task-shims.ts`. The old devenv task names are
-available as package scripts, so use `pnpm run <task-name>` for task-style
+Most package scripts delegate to a small repo CLI or to task shims in
+`scripts/src/task-shims.ts`. Use `pnpm run <task-name>` for task-style
 workflows.
 
 Release workflows are documented in
@@ -159,9 +104,9 @@ Release workflows are documented in
 A `pre-commit` hook runs `pnpm run check:quick` automatically, but you should
 also run the following manually for a tighter feedback loop:
 
-- `pnpm lint:fix` — auto-fix lint + format issues
-- `pnpm typecheck` — ensure TypeScript passes
-- `pnpm test:unit` (and relevant integration suites) — run tests
+- `pnpm run lint:full:fix` — auto-fix lint + format issues
+- `pnpm run ts:check` — ensure TypeScript passes
+- `pnpm run test:unit` (and relevant integration suites) — run tests
 
 ## Examples
 
@@ -185,8 +130,7 @@ also run the following manually for a tighter feedback loop:
 As a local OpenTelemetry setup, we recommend the
 [docker-otel-lgtm](https://github.com/grafana/docker-otel-lgtm) setup.
 
-Export the following before entering `devenv shell` (or in your
-`.envrc.local` if you use direnv):
+Export the following before running tasks:
 
 ```bash
 export VITE_GRAFANA_ENDPOINT="http://localhost:30003"
