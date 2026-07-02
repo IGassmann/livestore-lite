@@ -1607,11 +1607,9 @@ const buildSnippetsInternal = ({ paths, runtimeOptions }: ResolvedBuildOptions) 
         const renderContext = createRenderSnippetContext(bundle)
         for (const filename of bundle.fileOrder) {
           const shouldRenderTwoslash = filename === bundle.mainFileRelativePath
-          const renderEffect =
-            shouldRenderTwoslash === true
-              ? renderSnippet(renderer, bundle, filename, renderContext)
-              : renderSyntaxSnippet(renderer, bundle, filename, renderContext)
-          const rendered = yield* renderEffect
+          const rendered = yield* shouldRenderTwoslash === true
+            ? renderSnippet(renderer, bundle, filename, renderContext)
+            : renderSyntaxSnippet(renderer, bundle, filename, renderContext)
           if (rendered.html === null && rendered.diagnostics.length > 0) {
             yield* Effect.logWarning(
               `Twoslash pre-rendering skipped for ${entry.entryPath}: ${rendered.diagnostics[0]}`,
