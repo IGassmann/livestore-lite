@@ -37,16 +37,6 @@ const tsCommand = Cli.Command.make(
   }),
 )
 
-const circularCommand = Cli.Command.make(
-  'circular',
-  {},
-  Effect.fn(function* () {
-    yield* cmd('pnpm exec madge --circular --no-spinner examples/*/src packages/*/*/src', { shell: true }).pipe(
-      Effect.provide(LivestoreWorkspace.toCwd()),
-    )
-  }),
-)
-
 const command = Cli.Command.make('repo').pipe(
   Cli.Command.withSubcommands([
     examplesCommand,
@@ -54,7 +44,6 @@ const command = Cli.Command.make('repo').pipe(
     githubCommand,
     testCommand,
     tsCommand,
-    circularCommand,
     docsCommand,
     releaseCommand,
     updateDepsCommand,

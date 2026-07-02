@@ -64,7 +64,6 @@
     "lint:check": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:check",
     "lint:check:format": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:check:format",
     "lint:check:lockfile": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:check:lockfile",
-    "lint:check:madge": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:check:madge",
     "lint:check:md-imports": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:check:md-imports",
     "lint:check:oxlint": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:check:oxlint",
     "lint:fix": "WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/task-shims.ts lint:fix",

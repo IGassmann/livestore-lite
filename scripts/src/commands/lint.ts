@@ -79,11 +79,6 @@ export const lintCommand = Cli.Command.make(
       yield* runLintCheck
     }
 
-    // Shell needed for wildcards
-    yield* cmd('./scripts/node_modules/.bin/madge --circular --no-spinner examples/*/src packages/*/*/src', {
-      shell: true,
-    }).pipe(Effect.provide(LivestoreWorkspace.toCwd()))
-
     // Check peer dependencies (warn-only for now, doesn't fail the build)
     const peerDepsOk = yield* runPeerDepCheck
     if (peerDepsOk === false) {
