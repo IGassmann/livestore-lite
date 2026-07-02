@@ -27,7 +27,7 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${resolvedPort}`,
   },
   webServer: {
-    command: `vp exec astro dev --host 127.0.0.1 --port ${resolvedPort}`,
+    command: `vp exec --filter @local/docs -- astro dev --host 127.0.0.1 --port ${resolvedPort}`,
     url: `http://127.0.0.1:${resolvedPort}`,
     cwd: docsRoot,
     timeout: 120_000,
