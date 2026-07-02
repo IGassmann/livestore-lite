@@ -50,7 +50,7 @@
     "react-window": "1.8.11",
     "typescript": "6.0.3",
     "vite": "8.1.3",
-    "vitest": "3.2.4"
+    "vitest": "4.1.9"
   },
   "peerDependencies": {
     "@effect/ai": "^0.35.0",

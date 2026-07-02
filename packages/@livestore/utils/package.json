@@ -106,7 +106,7 @@
     "@types/web": "0.0.264",
     "effect": "3.21.2",
     "jsdom": "26.1.0",
-    "vitest": "3.2.4"
+    "vitest": "4.1.9"
   },
   "peerDependencies": {
     "@effect/ai": "^0.35.0",
