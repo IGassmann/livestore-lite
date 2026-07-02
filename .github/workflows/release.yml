@@ -22,7 +22,6 @@ on:
     paths:
       - .github/workflows/release.yml
       - .github/workflows/deploy-prod.yml
-      - nix/devenv-modules/tasks/local/mono-wrappers.nix
       - release/release-plan.json
       - release/release-notes.md
       - release/version.json
