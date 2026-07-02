@@ -342,6 +342,7 @@ jobs:
       - name: Install docs Playwright browser
         run: pnpm --dir docs exec playwright install --with-deps chromium
       - name: Build docs
+        timeout-minutes: 20
         run: pnpm exec vp run -v ci:docs:build
       - name: Save docs snippet cache
         if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}

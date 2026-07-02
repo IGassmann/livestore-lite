@@ -208,23 +208,92 @@ const formatDocsDeploymentSummaryMarkdown = ({
 }
 
 /**
- * Tldraw diagram rendering (via @kitschpatrol/tldraw-cli/Puppeteer) can leave a Chromium
- * child alive after work completes, keeping `pnpm run docs:build` hanging in CI
- * (e.g. https://github.com/livestorejs/livestore/actions/runs/19968500091/job/57266669492).
- * This helper force-kills Chromium children of the current repo CLI process in the docs CWD.
+ * Tldraw diagram rendering (via @kitschpatrol/tldraw-cli/Puppeteer) can leave
+ * Chromium helpers alive after work completes, keeping `pnpm run docs:build`
+ * hanging in CI. Helpers are not always direct children by the time cleanup
+ * runs, so match both process descendants and Chromium processes rooted in the
+ * docs working directory.
  */
 const cleanupChromiumChildren = Effect.fn('docs.cleanup-chromium-children')(function* () {
-  const parentPid = String(process.pid)
-  const script =
-    'pids=$(ps -eo pid=,ppid=,comm= | awk -v ppid="' +
-    parentPid +
-    "\" '/chromium|chrome_crashpad_handler/ { if ($2==ppid) print $1 }'); " +
-    'if [ -z "$pids" ]; then exit 0; fi; echo "Cleaning up stale Chromium processes: $pids"; kill $pids 2>/dev/null || true'
+  const script = `
+set +e
 
-  yield* cmd(script, { shell: true, stdout: 'inherit', stderr: 'inherit' }).pipe(
-    Effect.provide(LivestoreWorkspace.toCwd('docs')),
-    Effect.ignoreLogged,
-  )
+root_pid="\${DOCS_CLEANUP_PARENT_PID:-}"
+docs_cwd="$(cd "\${DOCS_CLEANUP_CWD:-.}" 2>/dev/null && pwd -P)"
+self_pid="$$"
+
+descendants=""
+frontier="$root_pid"
+while [ -n "$frontier" ]; do
+  next_frontier=""
+  for pid in $frontier; do
+    children="$(pgrep -P "$pid" 2>/dev/null || true)"
+    if [ -n "$children" ]; then
+      descendants="$descendants $children"
+      next_frontier="$next_frontier $children"
+    fi
+  done
+  frontier="$next_frontier"
+done
+
+candidate_pids="$descendants $(pgrep -f 'chromium|chrome_crashpad_handler|chrome' 2>/dev/null || true)"
+pids="$(
+  for pid in $candidate_pids; do
+    case "$pid" in
+      ''|*[!0-9]*) continue ;;
+    esac
+    if [ "$pid" = "$self_pid" ] || [ "$pid" = "$root_pid" ]; then
+      continue
+    fi
+
+    args="$(ps -p "$pid" -o args= 2>/dev/null || true)"
+    case "$args" in
+      *chromium*|*chrome_crashpad_handler*|*chrome*) ;;
+      *) continue ;;
+    esac
+
+    in_process_tree=0
+    case " $descendants " in
+      *" $pid "*) in_process_tree=1 ;;
+    esac
+
+    in_docs_cwd=0
+    if [ -n "$docs_cwd" ] && [ -e "/proc/$pid/cwd" ]; then
+      pid_cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+      case "$pid_cwd" in
+        "$docs_cwd"|"$docs_cwd"/*) in_docs_cwd=1 ;;
+      esac
+    fi
+
+    if [ "$in_process_tree" = "1" ] || [ "$in_docs_cwd" = "1" ]; then
+      echo "$pid"
+    fi
+  done | sort -u
+)"
+
+if [ -z "$pids" ]; then
+  exit 0
+fi
+
+echo "Cleaning up stale Chromium processes: $pids"
+kill $pids 2>/dev/null || true
+sleep 2
+for pid in $pids; do
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+done
+`
+
+  yield* cmd(script, {
+    shell: true,
+    stdout: 'inherit',
+    stderr: 'inherit',
+    env: {
+      DOCS_CLEANUP_PARENT_PID: String(process.pid),
+      DOCS_CLEANUP_CWD: docsPath,
+    },
+  }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')), Effect.ignoreLogged)
 })
 
 /**
@@ -260,6 +329,10 @@ const docsBuildCommand = Cli.Command.make(
     ),
   },
   Effect.fn('docs.build')(function* ({ apiDocs, clean, skipDeps }) {
+    if (isGithubAction === true) {
+      yield* startHeartbeat({ phase: 'docs-build' })
+    }
+
     if (clean === true) {
       // Wipe Astro output plus cached diagram/snippet artefacts to avoid stale renders between builds.
       yield* cmd(
@@ -295,7 +368,7 @@ const docsBuildCommand = Cli.Command.make(
       },
     }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
     yield* cleanupChromiumChildren()
-  }),
+  }, Effect.scoped),
 )
 
 /** Persist Netlify identifiers from the upload phase so `verify` and `purge` jobs can read them. */
