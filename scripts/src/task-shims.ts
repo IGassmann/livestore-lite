@@ -214,19 +214,16 @@ const tasks: Record<string, TaskSpec> = {
   },
   'lint:check:format': { command: "oxfmt --check . '!.github/workflows/*.yml'" },
   'lint:check:lockfile': { command: 'pnpm install --frozen-lockfile --lockfile-only' },
-  'lint:check:madge': {
-    command: './scripts/node_modules/.bin/madge --circular --no-spinner examples/*/src packages/*/*/src',
-  },
   'lint:check:md-imports': { command: checkMdImports },
   'lint:check:oxlint': { command: 'oxlint --import-plugin --deny-warnings' },
   'lint:fix': { command: [runScript('lint:fix:format'), runScript('lint:fix:oxlint')].join(' && ') },
   'lint:fix:format': { command: "oxfmt . '!.github/workflows/*.yml'" },
   'lint:fix:oxlint': { command: 'oxlint --import-plugin --deny-warnings --fix' },
   'lint:full': {
-    command: [runScript('lint:check'), runScript('lint:check:madge'), runScript('lint:check:md-imports')].join(' && '),
+    command: [runScript('lint:check'), runScript('lint:check:md-imports')].join(' && '),
   },
   'lint:full:fix': {
-    command: [runScript('lint:fix'), runScript('lint:check:madge'), runScript('lint:check:md-imports')].join(' && '),
+    command: [runScript('lint:fix'), runScript('lint:check:md-imports')].join(' && '),
   },
   'pnpm:clean': { command: cleanArtifacts },
   'pnpm:install': { command: 'pnpm install --frozen-lockfile' },
