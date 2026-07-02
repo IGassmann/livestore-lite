@@ -59,12 +59,7 @@ interface LockfilePackage {
   optionalDependencies?: Record<string, string>
 }
 
-const ignoredPeerViolations = new Set([
-  // rwsdk currently targets React 19 canary builds; we stay on stable 19.1.0 until upstream aligns
-  'rwsdk->react',
-  'rwsdk->react-dom',
-  'rwsdk->react-server-dom-webpack',
-])
+const ignoredPeerViolations = new Set()
 
 interface ParsedLockfile {
   lockfileVersion: string
