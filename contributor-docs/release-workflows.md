@@ -235,7 +235,7 @@ tooling changes.
 Create a release plan:
 
 ```bash
-LIVESTORE_NPM_TAG=latest dt release:changeset:version
+LIVESTORE_NPM_TAG=latest pnpm run release:changeset:version
 ```
 
 This is the local equivalent of the workflow-dispatch release PR generator.
@@ -243,13 +243,13 @@ This is the local equivalent of the workflow-dispatch release PR generator.
 Dry-run the package publish:
 
 ```bash
-CI=1 dt release:stable:dryrun
+CI=1 pnpm run release:stable:dryrun
 ```
 
 Dry-run the DevTools artifact repack for the planned version:
 
 ```bash
-CI=1 LIVESTORE_RELEASE_VERSION=0.4.0 dt release:devtools-artifact:repack-dryrun
+CI=1 LIVESTORE_RELEASE_VERSION=0.4.0 pnpm run release:devtools-artifact:repack-dryrun
 ```
 
 Use `release:devtools-artifact:repack-dryrun:no-install` only when setup has
@@ -315,7 +315,7 @@ release:
 1. Update `release/devtools-artifact.json` to the new public metadata and
    tarball URLs.
 2. Include the tarball SHA-256 when available.
-3. Run `CI=1 dt release:devtools-artifact:verify`.
+3. Run `CI=1 pnpm run release:devtools-artifact:verify`.
 4. Run the release e2e scenarios against the current LiveStore branch and
    DevTools build id.
 5. Add the schemaVersion 2 certification entry only after e2e passes.

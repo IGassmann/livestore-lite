@@ -597,7 +597,7 @@ jobs:
               }
             end' > release/devtools-artifact.json
       - name: Verify artifact manifest
-        run: '$DEVENV_BIN tasks run release:devtools-artifact:verify --mode before --no-tui'
+        run: '$DEVENV_BIN shell pnpm run release:devtools-artifact:verify'
       - name: Open manifest update PR
         if: github.event_name != 'pull_request'
         env:

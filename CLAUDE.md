@@ -14,12 +14,13 @@ This repository uses [`devenv`](https://devenv.sh) for development environment m
 
 Use the `mono` CLI for common workflows:
 
-- `dt lint:full` / `dt lint:full:fix` to run the linting checks
-- `mono test <unit|integration|perf>` to run the tests
+- `pnpm lint` / `pnpm lint:fix` to run the linting checks
+- `pnpm test` or `pnpm test:<unit|integration|perf>` to run the tests
   - Some tests can take a while to run.
-- `mono ts [--watch] [--clean]` to build the TypeScript code
-- `mono docs <dev|build|deploy>` for docs workflows
-- `mono examples <run|deploy|test>` for example workflows
+- `pnpm typecheck` to build the TypeScript code
+- `pnpm docs:<dev|build>` for common docs workflows
+- `pnpm examples:test` for example tests
+- `pnpm mono -- <command>` for lower-level mono workflows
 - ... and more
 
 ## Testing
@@ -44,7 +45,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ## Git
 
 - The default branch of this repository is `main`.
-- Before committing, run `dt lint:full:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
+- Before committing, run `pnpm lint:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
 
 ### Branch Naming Conventions
 
@@ -54,9 +55,9 @@ Use GitHub issues or an issue checklist for non-trivial work.
 
 ### Development Workflow
 
-- Run the full test suite before pushing: `dt test:run`
-- Ensure TypeScript compilation passes: `dt ts:check`
-- Use `dt lint:full:fix` to automatically fix formatting issues
+- Run the full test suite before pushing: `pnpm test`
+- Ensure TypeScript compilation passes: `pnpm typecheck`
+- Use `pnpm lint:fix` to automatically fix formatting issues
 
 ### Issues
 
