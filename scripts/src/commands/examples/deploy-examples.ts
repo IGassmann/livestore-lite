@@ -30,8 +30,8 @@ export class ScriptError extends Schema.TaggedError<ScriptError>()('ScriptError'
 }) {}
 
 /**
- * Deploys the example gallery to Cloudflare Workers. Handles prod/dev/preview behaviour while
- * leaving DNS updates to a dedicated subcommand.
+ * Deploys the example gallery to Cloudflare Workers. Handles prod/dev/preview behaviour and reports
+ * the resulting workers.dev targets.
  */
 
 const workspaceRoot = process.env.WORKSPACE_ROOT

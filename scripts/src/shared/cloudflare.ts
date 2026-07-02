@@ -8,10 +8,10 @@ import { type CloudflareExample, cloudflareExamplesBySlug } from './cloudflare-m
 
 /**
  * Tagged error used across Cloudflare deployment utilities so callers can
- * pattern match on the error reason (auth/config/dns/unknown).
+ * pattern match on the error reason (auth/config/unknown).
  */
 export class CloudflareError extends Schema.TaggedError<CloudflareError>()('CloudflareError', {
-  reason: Schema.Literal('auth', 'config', 'dns', 'unknown'),
+  reason: Schema.Literal('auth', 'config', 'unknown'),
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
 }) {}
@@ -162,9 +162,9 @@ export const resolveWorkerName = ({
   kind: CloudflareEnvironmentKind
 }) => {
   /**
-   * Keep worker names deterministic so the DNS command can infer the workers.dev
+   * Keep worker names deterministic so deploy summaries can infer the workers.dev
    * host without needing API lookups. Preview workers piggy-back on the prod
-  worker name with a sanitized suffix.
+   * worker name with a sanitized suffix.
    */
   if (kind === 'prod') {
     return composeWorkerName({ base: example.workerName })
