@@ -1,3 +1,9 @@
 #!/usr/bin/env sh
 
-bun $WORKSPACE_ROOT/scripts/src/mono.ts "$@"
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+WORKSPACE_ROOT=${WORKSPACE_ROOT:-$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)}
+export WORKSPACE_ROOT
+
+exec bun "$WORKSPACE_ROOT/scripts/src/mono.ts" "$@"

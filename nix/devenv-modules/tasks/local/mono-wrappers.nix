@@ -1,13 +1,13 @@
-# Wrapper tasks that call mono commands via dt
+# Wrapper tasks that call mono commands through the devenv task graph
 #
-# This allows uniform dt interface while keeping mono's complex logic.
+# This keeps the existing task graph while mono's complex logic remains in TypeScript.
 # For non-trivial commands with complex TypeScript implementations,
-# we wrap them as dt tasks rather than reimplementing in Nix.
+# we wrap them as devenv tasks rather than reimplementing in Nix.
 #
 # Benefits:
-# - Uniform interface: All CI commands use `dt`
+# - Uniform interface: CI commands can target the task graph
 # - No regression risk: mono logic unchanged
-# - Incremental migration: Can gradually move logic from mono to dt
+# - Incremental migration: Can gradually move task entrypoints to package scripts
 {
   inputs,
   pkgs,
@@ -294,7 +294,7 @@ in
         mkdir -p tmp/ci-docs-prod
         date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs-prod/failure-timestamp.log
         ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs-prod/ps-full.log || true
-        pgrep -af 'astro|chromium|chrome_crashpad_handler|netlify|node|mono|dt' > tmp/ci-docs-prod/pgrep-procs.log || true
+        pgrep -af 'astro|chromium|chrome_crashpad_handler|netlify|node|mono|bun' > tmp/ci-docs-prod/pgrep-procs.log || true
         # Surface the deploy-state file for inspection (useful when verify/purge fail).
         if [ -f tmp/ci-docs-prod/deploy-state.json ]; then
           echo "--- deploy-state.json ---"
@@ -350,7 +350,7 @@ in
         mkdir -p tmp/ci-docs
         date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs/failure-timestamp.log
         ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs/ps-full.log || true
-        pgrep -af 'astro|chromium|chrome_crashpad_handler|node|mono|dt' > tmp/ci-docs/pgrep-build-procs.log || true
+        pgrep -af 'astro|chromium|chrome_crashpad_handler|node|mono|bun' > tmp/ci-docs/pgrep-build-procs.log || true
       '';
     };
 

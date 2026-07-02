@@ -197,7 +197,7 @@ let
 in
 {
   imports = [
-    # dt command for running devenv tasks
+    # Legacy devenv task command for running the remaining Nix task graph
     effectUtils.devenvModules.dt
     # OTEL observability stack with livestore-specific dashboards
     # Keep release/task automation independent from user machine-level OTEL
@@ -271,7 +271,7 @@ in
         "ts:build"
       ];
     })
-    # Local task: mono command wrappers for uniform dt interface
+    # Local task wrappers retained while package.json scripts become the primary interface
     ./nix/devenv-modules/tasks/local/mono-wrappers.nix
     ./nix/devenv-modules/tasks/local/github-rulesets.nix
   ];
@@ -469,8 +469,7 @@ in
   git-hooks.enable = true;
   git-hooks.hooks.check-quick = {
     enable = true;
-    # Can't use `dt` here — git hooks run outside the devenv shell where `dt` isn't on $PATH
-    entry = "devenv tasks run check:quick --mode before";
+    entry = "pnpm run check:quick";
     stages = [ "pre-commit" ];
     always_run = true;
     pass_filenames = false;

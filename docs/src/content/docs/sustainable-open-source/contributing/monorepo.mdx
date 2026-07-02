@@ -30,8 +30,8 @@ Playwright browsers, etc.). Enter the development shell with `devenv shell`.
 
 LiveStore is developed alongside a family of projects that share tooling
 through [`effect-utils`](https://github.com/overengineeringstudio/effect-utils)
-— a Nix flake that provides the exact oxlint (with custom plugins), `dt` task
-runner, `megarepo` CLI, OTEL dashboards, and
+— a Nix flake that provides the exact oxlint (with custom plugins),
+`megarepo` CLI, OTEL dashboards, and
 Playwright integration used here. Standing this up outside of Nix/devenv
 means reimplementing a moving target and drifting from CI.
 
@@ -75,7 +75,7 @@ devenv shell
 ```
 
 Entering the shell builds the Nix environment, puts the full toolchain
-(Node.js, Bun, pnpm, `dt`, `mono`, oxlint, oxfmt, etc.) on `$PATH`, and
+(Node.js, Bun, pnpm, `mono`, oxlint, oxfmt, etc.) on `$PATH`, and
 runs the project `setup` task (which installs pnpm deps and builds TypeScript).
 
 ## Working with devenv
@@ -88,11 +88,11 @@ and is surfaced through the devenv CLI:
   environment. Type `exit` to leave. Re-run after closing the terminal.
 - `devenv shell <cmd> [args...]` — run a single command inside the
   environment without staying in the subshell. Useful for scripts and
-  CI (`devenv shell dt ts:check`).
-- `devenv tasks list` — list all defined tasks (see
+  CI (`devenv shell pnpm typecheck`).
+- `pnpm run` — list package scripts exposed by `package.json` (see
   [Common commands](#common-commands) below for the most-used ones).
-- `devenv tasks run <task>` — run a task directly. The project's
-  pre-commit hook uses this (`devenv tasks run check:quick`).
+- `pnpm run <task>` — run one of the repo task scripts directly. The project's
+  pre-commit hook uses this (`pnpm run check:quick`).
 - `devenv up` — start long-running processes defined in `devenv.nix`
   (e.g. the local OTEL stack — see [OpenTelemetry setup](#opentelemetry-setup)).
 - `devenv info` — print a summary of what the current environment
@@ -136,31 +136,32 @@ through. If you use direnv, the repo's `.envrc` sources a git-ignored
 
 ### Common commands
 
-Inside `devenv shell`, the `dt` CLI is a thin wrapper around
-`devenv tasks run` that adds status-check caching and OTEL
-instrumentation. From outside the shell, use
-`devenv shell dt <task>` or `devenv tasks run <task>` directly.
-Most-used tasks:
+Run common workflows through package scripts from the repository root:
 
-- `dt ts:build` / `dt ts:build-watch` — build TypeScript across the monorepo
-- `dt ts:check` — run the TypeScript build/check
-- `dt lint:full` / `dt lint:full:fix` — run (and auto-fix) lint + format
-- `dt test:unit` / `dt test:perf` / `dt test:integration:*` — run test suites
-- `dt docs:dev` / `dt docs:build` / `dt docs:deploy` — docs workflows
-- `dt examples:install` / `dt examples:test` / `dt examples:deploy` —
-  example workflows
+- `pnpm typecheck` — build/check TypeScript across the monorepo
+- `pnpm lint` / `pnpm lint:fix` — run or auto-fix lint + format checks
+- `pnpm test:unit` / `pnpm test:integration` / `pnpm test:perf` — run test suites
+- `pnpm docs:dev` / `pnpm docs:build` — common docs workflows
+- `pnpm examples:test` — example validation
+- `pnpm run release:changeset:status` — inspect release status
+- `pnpm run task -- --help` — list compatibility task shims
+
+Most package scripts delegate to the repo's `mono` command or to a small
+compatibility shim in `scripts/src/task-shims.ts`. The old devenv task names are
+available as package scripts, so use `pnpm run <task-name>` for task-style
+workflows.
 
 Release workflows are documented in
 [`contributor-docs/release-workflows.md`](https://github.com/livestorejs/livestore/blob/main/contributor-docs/release-workflows.md).
 
 ## Tasks to run before committing
 
-A `pre-commit` hook runs `devenv tasks run check:quick` automatically, but
-you should also run the following manually for a tighter feedback loop:
+A `pre-commit` hook runs `pnpm run check:quick` automatically, but you should
+also run the following manually for a tighter feedback loop:
 
-- `dt lint:full:fix` — auto-fix lint + format issues
-- `dt ts:check` — ensure TypeScript passes
-- `dt test:unit` (and relevant `dt test:integration:*` suites) — run tests
+- `pnpm lint:fix` — auto-fix lint + format issues
+- `pnpm typecheck` — ensure TypeScript passes
+- `pnpm test:unit` (and relevant integration suites) — run tests
 
 ## Examples
 
