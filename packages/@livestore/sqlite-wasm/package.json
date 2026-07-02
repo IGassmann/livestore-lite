@@ -61,7 +61,7 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "4.20251118.0",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@livestore/common": "workspace:^",
     "@livestore/common-cf": "workspace:^",
     "@livestore/utils": "workspace:^",
@@ -72,7 +72,7 @@
     "@types/node": "25.3.3",
     "@types/wicg-file-system-access": "2023.10.6",
     "vitest": "3.2.4",
-    "wrangler": "4.42.2"
+    "wrangler": "4.106.0"
   },
   "peerDependencies": {
     "@effect/ai": "^0.35.0",

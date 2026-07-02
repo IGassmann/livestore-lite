@@ -31,15 +31,18 @@ const viteDevServer = ({
     const devPort =
       useWorkspacePort === true ? '4444' : yield* getFreePort.pipe(Effect.map(String), UnknownError.mapToUnknownError)
 
-    yield* cmd(`./node_modules/.bin/vite --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`, {
-      env: {
-        // Relative to vite config
-        TEST_LIVESTORE_SCHEMA_PATH_JSON: yield* Schema.encode(Schema.parseJson())(
-          './devtools/todomvc/livestore/schema.ts',
-        ).pipe(Effect.orDie),
-        LSD_DEVTOOLS_LOCAL_PREVIEW: useDevtoolsLocalPreview === true ? '1' : undefined,
+    yield* cmd(
+      `./node_modules/.bin/vite --configLoader runner --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`,
+      {
+        env: {
+          // Relative to vite config
+          TEST_LIVESTORE_SCHEMA_PATH_JSON: yield* Schema.encode(Schema.parseJson())(
+            './devtools/todomvc/livestore/schema.ts',
+          ).pipe(Effect.orDie),
+          LSD_DEVTOOLS_LOCAL_PREVIEW: useDevtoolsLocalPreview === true ? '1' : undefined,
+        },
       },
-    }).pipe(Effect.provide(CurrentWorkingDirectory.fromPath(cwd)), Effect.forkScoped)
+    ).pipe(Effect.provide(CurrentWorkingDirectory.fromPath(cwd)), Effect.forkScoped)
 
     return { devPort }
   })
@@ -73,7 +76,7 @@ export const miscTest: Cli.Command.Command<
             FORCE_PLAYWRIGHT_VIA_CLI: '1',
             PLAYWRIGHT_SUITE: 'misc',
             LIVESTORE_PLAYWRIGHT_DEV_SERVER_PORT: devPort,
-            DEV_SERVER_COMMAND: `./node_modules/.bin/vite --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`,
+            DEV_SERVER_COMMAND: `./node_modules/.bin/vite --configLoader runner --config src/tests/playwright/fixtures/vite.config.ts dev --port ${devPort}`,
             PLAYWRIGHT_HEADLESS: mode === 'headless' ? '1' : '0',
             PLAYWRIGHT_UI: mode === 'ui' ? '1' : '0',
           },

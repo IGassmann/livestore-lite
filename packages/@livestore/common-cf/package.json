@@ -29,13 +29,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "4.20251118.0",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@livestore/utils": "workspace:^"
   },
   "devDependencies": {
     "@livestore/utils-dev": "workspace:^",
     "vitest": "3.2.4",
-    "wrangler": "4.42.2"
+    "wrangler": "4.106.0"
   },
   "peerDependencies": {
     "@effect/ai": "^0.35.0",

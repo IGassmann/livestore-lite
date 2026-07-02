@@ -146,3 +146,5 @@ minimumReleaseAgeExclude:
   - '@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.2'
   - '@voidzero-dev/vite-plus-win32-x64-msvc@0.2.2'
   - vite-plus@0.2.2
+  - '@cloudflare/workers-types@4.20260702.1'
+  - vite@8.1.3
