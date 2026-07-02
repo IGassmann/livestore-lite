@@ -7,6 +7,7 @@ import { Cli } from '@livestore/utils/node'
 
 import { copyTodomvcSrc } from './copy-examples.ts'
 import {
+  buildExampleWorkers,
   command as deployExamplesCommand,
   ensureExampleExists,
   readExampleSlugs,
@@ -63,6 +64,17 @@ const examplesTestCommand = Cli.Command.make(
   }),
 )
 
+const examplesBuildWorkersCommand = Cli.Command.make(
+  'build-workers',
+  {
+    exampleFilter: Cli.Options.text('example-filter').pipe(Cli.Options.withAlias('e'), Cli.Options.optional),
+    prod: Cli.Options.boolean('prod').pipe(Cli.Options.withDefault(false)),
+  },
+  Effect.fn(function* ({ exampleFilter, prod }) {
+    yield* buildExampleWorkers({ exampleFilter, prod })
+  }),
+)
+
 const examplesRunCommand = Cli.Command.make(
   'run',
   {
@@ -81,6 +93,7 @@ const examplesRunCommand = Cli.Command.make(
 
 export const examplesCommand = Cli.Command.make('examples').pipe(
   Cli.Command.withSubcommands([
+    examplesBuildWorkersCommand,
     deployExamplesCommand,
     copyTodomvcSrc,
     validateLinksCommand,
