@@ -1,15 +1,21 @@
-import { defineConfig } from 'vite'
+import type { PluginOption } from 'vite'
+import { defineConfig } from 'vite-plus'
 
 const TEST_LIVESTORE_SCHEMA_PATH_JSON = process.env.TEST_LIVESTORE_SCHEMA_PATH_JSON
 
+const toVitePlugin = (plugin: unknown): PluginOption => plugin as PluginOption
+
 // https://vitejs.dev/config
 export default defineConfig(async () => {
-  const livestoreDevtoolsPlugins =
+  const livestoreDevtoolsPlugins: PluginOption[] =
     TEST_LIVESTORE_SCHEMA_PATH_JSON !== undefined
       ? [
-          (await import('@livestore/devtools-vite')).livestoreDevtoolsPlugin({
-            schemaPath: JSON.parse(TEST_LIVESTORE_SCHEMA_PATH_JSON),
-          }),
+          // @livestore/devtools-vite still exposes a plugin type from its own Vite dependency graph.
+          toVitePlugin(
+            (await import('@livestore/devtools-vite')).livestoreDevtoolsPlugin({
+              schemaPath: JSON.parse(TEST_LIVESTORE_SCHEMA_PATH_JSON),
+            }),
+          ),
         ]
       : []
 

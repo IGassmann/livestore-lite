@@ -8,8 +8,8 @@
     "./registry": "./src/providers/registry.ts"
   },
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vp test run",
+    "test:watch": "vp test"
   },
   "dependencies": {
     "@cloudflare/workers-types": "4.20260702.1",
@@ -44,6 +44,6 @@
     "@standard-schema/spec": "1.1.0",
     "@types/node": "25.3.3",
     "effect": "3.21.2",
-    "vitest": "4.1.9"
+    "vitest": "catalog:"
   }
 }

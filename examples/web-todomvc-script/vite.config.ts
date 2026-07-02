@@ -1,7 +1,7 @@
 import process from 'node:process'
 
 import { cloudflare } from '@cloudflare/vite-plugin'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite-plus'
 
 const enableLivestoreDevtools = process.env.LIVESTORE_ENABLE_DEVTOOLS_VITE === '1'
 

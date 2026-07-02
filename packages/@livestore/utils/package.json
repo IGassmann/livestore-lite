@@ -71,7 +71,7 @@
     }
   },
   "scripts": {
-    "test": "vitest"
+    "test": "vp test"
   },
   "dependencies": {
     "@effect/platform-node": "0.106.0",
@@ -106,7 +106,7 @@
     "@types/web": "0.0.264",
     "effect": "3.21.2",
     "jsdom": "26.1.0",
-    "vitest": "4.1.9"
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@effect/ai": "^0.35.0",

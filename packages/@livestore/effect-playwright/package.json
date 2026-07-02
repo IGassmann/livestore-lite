@@ -33,7 +33,8 @@
     "@playwright/test": "^1.60.0",
     "@standard-schema/spec": "1.1.0",
     "@types/node": "25.3.3",
-    "effect": "3.21.2"
+    "effect": "3.21.2",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@playwright/test": "^1.56.0"

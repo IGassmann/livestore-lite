@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vite-plus/test'
 
 import { objectToString } from '@livestore/utils'
 import { Schema } from '@livestore/utils/effect'

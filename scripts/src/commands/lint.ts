@@ -38,30 +38,20 @@ const checkMdFilesNoImports = Effect.gen(function* () {
   }
 }).pipe(Effect.withSpan('checkMdFilesNoImports'))
 
-/** Exclude workflow YAML files from oxfmt; they remain large, machine-shaped config files. */
-const oxfmtExcludePatterns = ['!.github/workflows/*.yml']
-
-/** Run oxfmt format check (uses .oxfmtrc.json) */
-const runFormatCheck = cmd(['oxfmt', '--check', '.', ...oxfmtExcludePatterns]).pipe(
+const runFormatCheck = cmd(['vp', 'fmt', '--check', '.']).pipe(
   Effect.provide(LivestoreWorkspace.toCwd()),
   Effect.withSpan('formatCheck'),
 )
 
-/** Run oxfmt format fix (uses .oxfmtrc.json) */
-const runFormatFix = cmd(['oxfmt', '.', ...oxfmtExcludePatterns]).pipe(
+const runFormatFix = cmd(['vp', 'fmt', '.']).pipe(
   Effect.provide(LivestoreWorkspace.toCwd()),
   Effect.withSpan('formatFix'),
 )
 
-/** Run oxlint check (uses .oxlintrc.json) */
 // TODO(oep-3632.1) enable --type-aware once remaining no-unsafe-type-assertion violations are addressed (~567 remaining)
-const runLintCheck = cmd(['oxlint', '--import-plugin', '--deny-warnings']).pipe(
-  Effect.provide(LivestoreWorkspace.toCwd()),
-  Effect.withSpan('lintCheck'),
-)
+const runLintCheck = cmd(['vp', 'lint']).pipe(Effect.provide(LivestoreWorkspace.toCwd()), Effect.withSpan('lintCheck'))
 
-/** Run oxlint fix (uses .oxlintrc.json) */
-const runLintFix = cmd(['oxlint', '--import-plugin', '--deny-warnings', '--fix']).pipe(
+const runLintFix = cmd(['vp', 'lint', '--fix']).pipe(
   Effect.provide(LivestoreWorkspace.toCwd()),
   Effect.withSpan('lintFix'),
 )
@@ -70,7 +60,7 @@ export const lintCommand = Cli.Command.make(
   'lint',
   { fix: Cli.Options.boolean('fix').pipe(Cli.Options.withDefault(false)) },
   Effect.fn(function* ({ fix }) {
-    // Run oxfmt and oxlint (format + lint)
+    // Run the Vite+ formatter and linter so both read vite.config.ts.
     if (fix === true) {
       yield* runFormatFix
       yield* runLintFix

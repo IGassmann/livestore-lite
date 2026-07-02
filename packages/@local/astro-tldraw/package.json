@@ -36,7 +36,7 @@
     "astro": "6.4.6",
     "effect": "3.21.2",
     "puppeteer": "24.43.1",
-    "vitest": "4.1.9"
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "astro": "^5 || ^6"

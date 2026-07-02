@@ -40,8 +40,7 @@
     "@types/semver": "^7.7.0",
     "effect": "3.21.2",
     "semver": "^7.7.3",
-    "typescript": "6.0.3",
-    "vitest": "4.1.9",
+    "vitest": "catalog:",
     "yaml": "2.8.1"
   }
 }

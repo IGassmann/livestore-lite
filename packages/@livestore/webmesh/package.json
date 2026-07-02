@@ -25,7 +25,7 @@
     }
   },
   "scripts": {
-    "test": "vitest"
+    "test": "vp test"
   },
   "dependencies": {
     "@livestore/utils": "workspace:^"
@@ -51,7 +51,7 @@
     "@opentelemetry/resources": "2.2.0",
     "@standard-schema/spec": "1.1.0",
     "effect": "3.21.2",
-    "vitest": "4.1.9"
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@effect/ai": "^0.35.0",

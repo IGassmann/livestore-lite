@@ -38,5 +38,8 @@
     "@opentelemetry/resources": "2.2.0",
     "@standard-schema/spec": "1.1.0",
     "effect": "3.21.2"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
   }
 }
