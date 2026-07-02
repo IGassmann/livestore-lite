@@ -29,16 +29,13 @@ const normalizeDocPath = (value: unknown): string => {
   return pathValue === '' ? 'index' : pathValue
 }
 
-const staticPathFromDoc = (doc: TDoc): string => {
-  const slug = typeof doc.slug === 'string' ? doc.slug.replace(/^\//u, '') : undefined
-  return slug && slug !== '' ? slug : normalizeDocPath(doc.id)
-}
+const staticPathFromDoc = (doc: TDoc): string => normalizeDocPath(doc.id)
 
 const transformBody = async (doc: TDoc): Promise<string> =>
   transformMultiCodeDocument({
     id: doc.id,
     collection: doc.collection,
-    body: doc.body,
+    body: doc.body ?? '',
     debug: process.env.LS_DEBUG_MARKDOWN === '1',
   })
 
@@ -58,7 +55,7 @@ export async function GET({ params }: APIContext): Promise<Response> {
     for (const doc of docs) {
       const idNorm = normalizeDocPath(doc.id)
       const slugNorm = staticPathFromDoc(doc)
-      if (idNorm === key || doc.slug === key) return doc
+      if (idNorm === key) return doc
       if (idNorm === `${key}/index`) return doc
       if (`${idNorm}/index` === key) return doc
       if (slugNorm === key) return doc
@@ -91,7 +88,7 @@ export async function GET({ params }: APIContext): Promise<Response> {
     })
   }
 
-  const title = doc.data?.title ?? doc.slug ?? key
+  const title = doc.data?.title ?? key
   const transformedBody = await transformBody(doc)
   /**
    * Substitute the MDX-only `<LlmsShort />` marker so markdown fetches mirror

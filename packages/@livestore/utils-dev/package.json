@@ -30,7 +30,7 @@
     }
   },
   "scripts": {
-    "test": "echo 'No tests for utils-dev'"
+    "test": "WORKSPACE_ROOT=../../.. vp test"
   },
   "dependencies": {
     "@effect/opentelemetry": "0.63.0",

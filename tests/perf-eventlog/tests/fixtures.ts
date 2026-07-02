@@ -47,33 +47,35 @@ export const test = base.extend<{
       return
     }
 
-    let cdpSession: CDPSession | null = null
-    let profilingActive = false
+    const state: { cdpSession: CDPSession | null; profilingActive: boolean } = {
+      cdpSession: null,
+      profilingActive: false,
+    }
     let currentLabel: string | undefined
 
     const profiler: CPUProfiler = {
       start: async (label?: string) => {
-        if (profilingActive === true) {
+        if (state.profilingActive === true) {
           throw new Error('CPU profiling is already active')
         }
 
-        if (cdpSession == null) {
-          cdpSession = await page.context().newCDPSession(page)
+        if (state.cdpSession == null) {
+          state.cdpSession = await page.context().newCDPSession(page)
         }
 
-        await cdpSession.send('Profiler.enable')
-        await cdpSession.send('Profiler.start')
-        profilingActive = true
+        await state.cdpSession.send('Profiler.enable')
+        await state.cdpSession.send('Profiler.start')
+        state.profilingActive = true
         currentLabel = label
       },
 
       stop: async (name: string) => {
-        if (profilingActive === false || cdpSession == null) {
+        if (state.profilingActive === false || state.cdpSession == null) {
           throw new Error('CPU profiling is not active')
         }
 
-        const { profile } = await cdpSession.send('Profiler.stop')
-        profilingActive = false
+        const { profile } = await state.cdpSession.send('Profiler.stop')
+        state.profilingActive = false
 
         // Save the profile to a file
         const filename = currentLabel !== undefined ? `${name}-${currentLabel}.cpuprofile` : `${name}.cpuprofile`
@@ -86,22 +88,22 @@ export const test = base.extend<{
         currentLabel = undefined
       },
 
-      isActive: () => profilingActive,
+      isActive: () => state.profilingActive,
     }
 
     await use(profiler)
 
     // Cleanup: stop profiling if still active
-    if (profilingActive === true && cdpSession !== undefined) {
+    if (profiler.isActive() === true && state.cdpSession !== null) {
       try {
-        await cdpSession.send('Profiler.stop')
+        await state.cdpSession.send('Profiler.stop')
       } catch {
         // Ignore errors during cleanup
       }
     }
 
-    if (cdpSession !== undefined) {
-      await cdpSession.detach()
+    if (state.cdpSession !== null) {
+      await state.cdpSession.detach()
     }
   },
 })

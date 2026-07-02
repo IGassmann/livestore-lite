@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "vp test run"
+  },
   "exports": {
     ".": "./src/mod.ts",
     "./components/TldrawDiagram.astro": "./src/components/TldrawDiagram.astro",
