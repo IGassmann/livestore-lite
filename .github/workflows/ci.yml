@@ -34,8 +34,8 @@ jobs:
           key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
-      - name: Run lint checks
-        run: vp run -w -v ci:lint
+      - name: Run static checks
+        run: vp run -w -v ci:check
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -158,7 +158,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-vite-plus
       - name: Install Playwright browsers
-        run: pnpm --dir tests/integration exec playwright install --with-deps chromium
+        run: vp exec --filter @local/tests-integration -- playwright install --with-deps chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -197,7 +197,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ./.github/actions/setup-vite-plus
       - name: Install Playwright browsers
-        run: pnpm --dir tests/perf exec playwright install --with-deps chromium
+        run: vp exec --filter @local/tests-perf -- playwright install --with-deps chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -261,7 +261,7 @@ jobs:
       - name: Build examples
         run: vp run -w -v ci:examples:build-ready
       - name: Install example Playwright browsers
-        run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
+        run: vp exec --filter livestore-example-web-linearlite -- playwright install --with-deps chromium
       - name: Test examples
         run: vp run -w -v examples:test
       - id: cloudflare-deploy
@@ -333,14 +333,14 @@ jobs:
         run: echo "PUPPETEER_CACHE_DIR=${RUNNER_TEMP}/puppeteer" >> "$GITHUB_ENV"
       - name: Install tldraw Chrome
         run: |
-          chrome_path="$(pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome --format '{{path}}' | tail -n 1)"
+          chrome_path="$(vp exec --filter @local/astro-tldraw -- puppeteer browsers install chrome --format '{{path}}' | tail -n 1)"
           if [[ ! -x "$chrome_path" ]]; then
             echo "Installed Chrome executable not found at $chrome_path" >&2
             exit 1
           fi
           echo "PUPPETEER_EXECUTABLE_PATH=$chrome_path" >> "$GITHUB_ENV"
       - name: Install docs Playwright browser
-        run: pnpm --dir docs exec playwright install --with-deps chromium
+        run: vp exec --filter @local/docs -- playwright install --with-deps chromium
       - name: Build docs
         timeout-minutes: 20
         run: vp run -w -v ci:docs:build

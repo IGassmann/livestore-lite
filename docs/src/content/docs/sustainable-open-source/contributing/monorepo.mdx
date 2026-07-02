@@ -85,7 +85,7 @@ them.
 Run common workflows through Vite+ tasks from the repository root:
 
 - `pnpm exec vp run -w ts:check` — build/check TypeScript across the monorepo
-- `pnpm exec vp run -w lint:full` / `pnpm exec vp run -w lint:full:fix` — run or auto-fix lint + format checks
+- `pnpm exec vp run -w check:all` / `pnpm exec vp run -w check:fix` — run or auto-fix static checks
 - `pnpm exec vp run -w test:unit` / `pnpm exec vp run -w test:integration` / `pnpm exec vp run -w test:perf` — run test suites
 - `pnpm exec vp run -w docs:dev` / `pnpm exec vp run -w docs:build` — common docs workflows
 - `pnpm exec vp run -w examples:test` — example validation
@@ -103,7 +103,7 @@ Release workflows are documented in
 A `pre-commit` hook runs `pnpm exec vp run -w check:quick` automatically, but you should
 also run the following manually for a tighter feedback loop:
 
-- `pnpm exec vp run -w lint:full:fix` — auto-fix lint + format issues
+- `pnpm exec vp run -w check:fix` — auto-fix static-check issues
 - `pnpm exec vp run -w ts:check` — ensure TypeScript passes
 - `pnpm exec vp run -w test:unit` (and relevant integration suites) — run tests
 

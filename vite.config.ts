@@ -391,13 +391,31 @@ export default defineConfig({
 
       'check:all': {
         command: 'true',
-        dependsOn: ['lint:full', 'ts:check'],
+        dependsOn: ['check', 'ts:check', 'check:lockfile', 'check:md-imports'],
+        ...noOutput,
+        ...cacheable,
+      },
+      check: {
+        command: 'vp check',
+        ...noOutput,
+        ...cacheable,
+      },
+      'check:fix': {
+        command: 'vp check --fix',
+        cache: false,
+      },
+      'check:lockfile': {
+        command: 'pnpm install --frozen-lockfile --lockfile-only',
+        cache: false,
+      },
+      'check:md-imports': {
+        command: checkMdImports,
         ...noOutput,
         ...cacheable,
       },
       'check:quick': {
         command: 'true',
-        dependsOn: ['lint', 'ts:check'],
+        dependsOn: ['check', 'ts:check'],
         ...noOutput,
         ...cacheable,
       },
@@ -519,59 +537,6 @@ export default defineConfig({
 
       'github:rulesets:check': {
         command: repoCli('github rulesets check'),
-        cache: false,
-      },
-
-      lint: {
-        command: repoCli('lint'),
-        ...noOutput,
-        ...cacheable,
-      },
-      'lint:check': {
-        command: 'true',
-        dependsOn: ['lint:check:format', 'lint:check:lockfile', 'lint:check:oxlint'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'lint:check:format': {
-        command: 'vp fmt --check .',
-        ...noOutput,
-        ...cacheable,
-      },
-      'lint:check:lockfile': {
-        command: 'pnpm install --frozen-lockfile --lockfile-only',
-        cache: false,
-      },
-      'lint:check:md-imports': {
-        command: checkMdImports,
-        ...noOutput,
-        ...cacheable,
-      },
-      'lint:check:oxlint': {
-        command: 'vp lint',
-        ...noOutput,
-        ...cacheable,
-      },
-      'lint:fix': {
-        command: ['vpr -w lint:fix:format', 'vpr -w lint:fix:oxlint'],
-        cache: false,
-      },
-      'lint:fix:format': {
-        command: 'vp fmt .',
-        cache: false,
-      },
-      'lint:fix:oxlint': {
-        command: 'vp lint --fix',
-        cache: false,
-      },
-      'lint:full': {
-        command: 'true',
-        dependsOn: ['lint:check', 'lint:check:md-imports'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'lint:full:fix': {
-        command: ['vpr -w lint:fix', 'vpr -w lint:check:md-imports'],
         cache: false,
       },
 
@@ -817,9 +782,9 @@ export default defineConfig({
         cache: false,
       },
 
-      'ci:lint': {
+      'ci:check': {
         command: 'true',
-        dependsOn: ['lint:full'],
+        dependsOn: ['check:all'],
         ...noOutput,
         ...cacheable,
       },

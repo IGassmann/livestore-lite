@@ -12,7 +12,7 @@ This repository uses Node 24 and pnpm 11 for local development. Run `corepack en
 
 Use `pnpm exec vp run -w <task>` for common workflows:
 
-- `pnpm exec vp run -w lint:full` / `pnpm exec vp run -w lint:full:fix` to run the linting checks
+- `pnpm exec vp run -w check:all` / `pnpm exec vp run -w check:fix` to run or auto-fix the static checks
 - `pnpm exec vp run -w test:unit`, `pnpm exec vp run -w test:integration`, or `pnpm exec vp run -w test:perf` to run the tests
   - Some tests can take a while to run.
 - `pnpm exec vp run -w ts:check` to check the TypeScript build
@@ -42,7 +42,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ## Git
 
 - The default branch of this repository is `main`.
-- Before committing, run `pnpm exec vp run -w lint:full:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
+- Before committing, run `pnpm exec vp run -w check:fix` to auto-fix most static-check errors. Make sure there are no static-check errors.
 
 ### Branch Naming Conventions
 
@@ -54,7 +54,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 
 - Run the full test suite before pushing: `pnpm exec vp run -w test`
 - Ensure TypeScript compilation passes: `pnpm exec vp run -w ts:check`
-- Use `pnpm exec vp run -w lint:full:fix` to automatically fix formatting issues
+- Use `pnpm exec vp run -w check:fix` to automatically fix formatting issues
 
 ### Issues
 

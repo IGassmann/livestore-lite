@@ -38,35 +38,22 @@ const checkMdFilesNoImports = Effect.gen(function* () {
   }
 }).pipe(Effect.withSpan('checkMdFilesNoImports'))
 
-const runFormatCheck = cmd(['vp', 'fmt', '--check', '.']).pipe(
-  Effect.provide(LivestoreWorkspace.toCwd()),
-  Effect.withSpan('formatCheck'),
-)
+const runCheck = cmd(['vp', 'check']).pipe(Effect.provide(LivestoreWorkspace.toCwd()), Effect.withSpan('check'))
 
-const runFormatFix = cmd(['vp', 'fmt', '.']).pipe(
+const runCheckFix = cmd(['vp', 'check', '--fix']).pipe(
   Effect.provide(LivestoreWorkspace.toCwd()),
-  Effect.withSpan('formatFix'),
-)
-
-// TODO(oep-3632.1) enable --type-aware once remaining no-unsafe-type-assertion violations are addressed (~567 remaining)
-const runLintCheck = cmd(['vp', 'lint']).pipe(Effect.provide(LivestoreWorkspace.toCwd()), Effect.withSpan('lintCheck'))
-
-const runLintFix = cmd(['vp', 'lint', '--fix']).pipe(
-  Effect.provide(LivestoreWorkspace.toCwd()),
-  Effect.withSpan('lintFix'),
+  Effect.withSpan('checkFix'),
 )
 
 export const lintCommand = Cli.Command.make(
   'lint',
   { fix: Cli.Options.boolean('fix').pipe(Cli.Options.withDefault(false)) },
   Effect.fn(function* ({ fix }) {
-    // Run the Vite+ formatter and linter so both read vite.config.ts.
+    // Use Vite+'s composite check path so format and lint share one toolchain entrypoint.
     if (fix === true) {
-      yield* runFormatFix
-      yield* runLintFix
+      yield* runCheckFix
     } else {
-      yield* runFormatCheck
-      yield* runLintCheck
+      yield* runCheck
     }
 
     // Check peer dependencies (warn-only for now, doesn't fail the build)

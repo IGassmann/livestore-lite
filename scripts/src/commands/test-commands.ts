@@ -42,6 +42,7 @@ interface TestTarget {
 }
 
 const vitestConfigPattern = /^vitest.*\.config\.(ts|js)$/
+const vpTestRunArgs = (...args: string[]): string[] => ['vp', 'test', 'run', ...args]
 
 /** Find vitest config files in a directory (root and tests/ subdirectory). */
 const findVitestConfigs = (pkgPath: string): string[] => {
@@ -179,11 +180,11 @@ export const testUnitCommand = Cli.Command.make(
       if (configs.length > 0) {
         yield* Effect.forEach(
           configs,
-          (config) => cmd(['vitest', 'run', '--config', config]).pipe(Effect.provide(LivestoreWorkspace.toCwd())),
+          (config) => cmd(vpTestRunArgs('--config', config)).pipe(Effect.provide(LivestoreWorkspace.toCwd())),
           { concurrency: 'unbounded' },
         )
       } else {
-        yield* cmd(['vitest', 'run', target]).pipe(Effect.provide(LivestoreWorkspace.toCwd()))
+        yield* cmd(vpTestRunArgs(target)).pipe(Effect.provide(LivestoreWorkspace.toCwd()))
       }
       return
     }
@@ -198,17 +199,17 @@ export const testUnitCommand = Cli.Command.make(
     if (isGithubAction === true) {
       process.env.CI = '1'
 
-      const vitestPathsToRunSequentially = sequentialPackages.map((pkg) => `${workspaceRoot}/${pkg}`)
+      const testPathsToRunSequentially = sequentialPackages.map((pkg) => `${workspaceRoot}/${pkg}`)
 
       // Currently getting a bunch of flaky webmesh tests on CI (https://share.cleanshot.com/Q2WWD144)
       // Ignoring them for now but we should fix them eventually
-      for (const vitestPath of vitestPathsToRunSequentially) {
-        yield* runTestGroup(vitestPath)(
-          cmd(`vitest run ${vitestPath}`).pipe(Effect.ignoreLogged, Effect.provide(LivestoreWorkspace.toCwd())),
+      for (const testPath of testPathsToRunSequentially) {
+        yield* runTestGroup(testPath)(
+          cmd(vpTestRunArgs(testPath)).pipe(Effect.ignoreLogged, Effect.provide(LivestoreWorkspace.toCwd())),
         )
       }
 
-      // Run the rest of the tests in parallel (each config as separate vitest invocation)
+      // Run the rest of the tests in parallel (each config as a separate Vite+ test invocation)
       if (allPackagesWithTests.length > 0) {
         yield* runTestGroup('Parallel tests')(
           Effect.forEach(
@@ -216,8 +217,8 @@ export const testUnitCommand = Cli.Command.make(
             (target) => {
               const args =
                 target.config !== undefined
-                  ? ['vitest', 'run', '--config', target.config]
-                  : ['vitest', 'run', `${workspaceRoot}/${target.path}`]
+                  ? vpTestRunArgs('--config', target.config)
+                  : vpTestRunArgs(`${workspaceRoot}/${target.path}`)
               return cmd(args).pipe(Effect.provide(LivestoreWorkspace.toCwd()))
             },
             { concurrency: ciUnitTestPackageConcurrency },
@@ -232,11 +233,11 @@ export const testUnitCommand = Cli.Command.make(
         (target) => {
           const args =
             target.config !== undefined
-              ? ['vitest', 'run', '--config', target.config]
-              : ['vitest', 'run', `${workspaceRoot}/${target.path}`]
+              ? vpTestRunArgs('--config', target.config)
+              : vpTestRunArgs(`${workspaceRoot}/${target.path}`)
           const label = target.config ?? target.path
           // TODO use this https://x.com/luxdav/status/1942532247833436656
-          return cmdText(args.join(' '), { stderr: 'pipe' }).pipe(
+          return cmdText(args, { stderr: 'pipe' }).pipe(
             Effect.provide(LivestoreWorkspace.toCwd()),
             Effect.tap((text) => console.log(`Output for ${label}:\n\n${text}\n\n`)),
           )
@@ -251,9 +252,11 @@ export const testPerfCommand = Cli.Command.make(
   'perf',
   {},
   Effect.fn(function* () {
-    yield* cmd('NODE_OPTIONS=--disable-warning=ExperimentalWarning pnpm playwright test', {
-      shell: true,
-      env: { FORCE_PLAYWRIGHT_VIA_CLI: '1' },
+    yield* cmd(['vp', 'exec', 'playwright', 'test'], {
+      env: {
+        FORCE_PLAYWRIGHT_VIA_CLI: '1',
+        NODE_OPTIONS: '--disable-warning=ExperimentalWarning',
+      },
     }).pipe(Effect.provide(LivestoreWorkspace.toCwd('tests/perf')))
   }),
 )
@@ -262,7 +265,7 @@ export const waSqliteTest = Cli.Command.make(
   'wa-sqlite',
   {},
   Effect.fn(function* () {
-    yield* cmd('vitest run').pipe(Effect.provide(LivestoreWorkspace.toCwd('tests/wa-sqlite')))
+    yield* cmd(vpTestRunArgs()).pipe(Effect.provide(LivestoreWorkspace.toCwd('tests/wa-sqlite')))
   }),
 )
 
@@ -281,7 +284,7 @@ export const syncProviderTest = Cli.Command.make(
   Effect.fn(function* ({ provider }: { provider: Option.Option<TSyncProviderChoice> }) {
     yield* syncProviderTestsPrepare.prepareCi
 
-    const args: string[] = ['vitest', 'run']
+    const args = vpTestRunArgs()
     if (Option.isSome(provider) === true) {
       const suite = providerRegistry[provider.value].name
       // Vitest may render the provider name wrapped in quotes in the full test title.
