@@ -106,7 +106,7 @@ jobs:
               }
             end' > release/devtools-artifact.json
       - name: Verify artifact manifest
-        run: pnpm run release:devtools-artifact:verify
+        run: pnpm exec vp run -w -v release:devtools-artifact:verify
       - name: Open manifest update PR
         if: github.event_name != 'pull_request'
         env:

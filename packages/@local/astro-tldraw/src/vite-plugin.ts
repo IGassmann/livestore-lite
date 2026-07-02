@@ -50,7 +50,7 @@ const diagramComponentSpecifier = (() => {
 })()
 
 const formatRebuildInstruction = (): string =>
-  'Please run `pnpm run docs:build:phase:diagrams` to regenerate the cache.'
+  'Please run `pnpm exec vp run -w docs:build:phase:diagrams` to regenerate the cache.'
 
 const createComponentModuleSource = (serializedPayload: string, componentSpecifier: string): string =>
   [

@@ -158,7 +158,7 @@ const hasTestFiles = (dirPath: string): boolean => {
 
 // TODO: Consider replacing hardcoded package targeting with Vitest CLI flag passthrough
 // This would allow more flexible test targeting using standard Vitest options like:
-// - File patterns as positional arguments (e.g., pnpm run test:unit packages/@livestore/common)
+// - File patterns as positional arguments (e.g., pnpm exec vp run -w test:unit packages/@livestore/common)
 // - --testNamePattern/-t for filtering tests by name
 // - --exclude for excluding files
 // - Other standard Vitest CLI flags for more precise test control

@@ -51,13 +51,13 @@ monorepo.
 Maintainers can dry-run the snapshot publisher locally:
 
 ```bash
-CI=1 pnpm run release:snapshot -- --dry-run --yes
+CI=1 pnpm exec vp run -w release:snapshot -- --dry-run --yes
 ```
 
 To dry-run a snapshot for a specific commit:
 
 ```bash
-CI=1 pnpm run release:snapshot -- --git-sha=<git-sha> --dry-run --yes
+CI=1 pnpm exec vp run -w release:snapshot -- --git-sha=<git-sha> --dry-run --yes
 ```
 
 Local snapshot publishing should be rare; prefer the CI snapshot workflow so npm
@@ -134,7 +134,7 @@ falls back to the legacy `Release <version>` body and logs a warning. To
 refresh it locally for a planned release:
 
 ```bash
-pnpm run release:notes:extract
+pnpm exec vp run -w release:notes:extract
 ```
 
 This reads the version from `release/release-plan.json` and writes
@@ -163,7 +163,7 @@ After merge to `main`, the push-triggered workflow runs:
 
 ### Prod docs deploy phase split
 
-The prod docs deploy was previously a single `pnpm run docs:deploy:prod`
+The prod docs deploy was previously a single `pnpm exec vp run -w docs:deploy:prod`
 invocation. It hung reproducibly for the 0.4.0 release because the
 tldraw diagram renderer (via `@kitschpatrol/tldraw-cli` + Puppeteer) can leave
 an orphan Chromium child that keeps the parent Node process alive
@@ -234,7 +234,7 @@ tooling changes.
 Create a release plan:
 
 ```bash
-LIVESTORE_NPM_TAG=latest pnpm run release:changeset:version
+LIVESTORE_NPM_TAG=latest pnpm exec vp run -w release:changeset:version
 ```
 
 This is the local equivalent of the workflow-dispatch release PR generator.
@@ -242,13 +242,13 @@ This is the local equivalent of the workflow-dispatch release PR generator.
 Dry-run the package publish:
 
 ```bash
-CI=1 pnpm run release:stable:dryrun
+CI=1 pnpm exec vp run -w release:stable:dryrun
 ```
 
 Dry-run the DevTools artifact repack for the planned version:
 
 ```bash
-CI=1 LIVESTORE_RELEASE_VERSION=0.4.0 pnpm run release:devtools-artifact:repack-dryrun
+CI=1 LIVESTORE_RELEASE_VERSION=0.4.0 pnpm exec vp run -w release:devtools-artifact:repack-dryrun
 ```
 
 Use `release:devtools-artifact:repack-dryrun:no-install` only when setup has
@@ -314,7 +314,7 @@ release:
 1. Update `release/devtools-artifact.json` to the new public metadata and
    tarball URLs.
 2. Include the tarball SHA-256 when available.
-3. Run `CI=1 pnpm run release:devtools-artifact:verify`.
+3. Run `CI=1 pnpm exec vp run -w release:devtools-artifact:verify`.
 4. Run the release e2e scenarios against the current LiveStore branch and
    DevTools build id.
 5. Add the schemaVersion 2 certification entry only after e2e passes.

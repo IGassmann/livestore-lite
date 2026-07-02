@@ -42,7 +42,7 @@ Additional expectations:
 
 - Snippet entry files live underneath `src/content/_assets/code/`. Relative imports and triple-slash references must stay within that tree.
 - Snippet TypeScript options default to `src/content/_assets/code/tsconfig.json`. Override the location or patch compiler options via the `runtime` option if you need custom behaviour.
-- The rebuild command defaults to `pnpm run docs:build:phase:snippets`; override it when embedding into other projects so error messages point to the correct script.
+- The rebuild command defaults to `pnpm exec vp run -w docs:build:phase:snippets`; override it when embedding into other projects so error messages point to the correct script.
 
 ### Canonical snippet paths
 

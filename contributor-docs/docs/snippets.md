@@ -36,11 +36,11 @@ component always reflects the pre-rendered bundle stored in `docs/node_modules/.
 
 ## Build pipeline
 
-- `pnpm run docs:dev` and `pnpm run docs:build` build snippets and diagrams by default before invoking Astro.
+- `pnpm exec vp run -w docs:dev` and `pnpm exec vp run -w docs:build` build snippets and diagrams by default before invoking Astro.
   Use `--skip-deps` to skip this step.
 - The Astro integration can also trigger snippet rebuilds automatically, but when invoked via the
   repo task runner, `LS_SKIP_SNIPPET_AUTO_BUILD_AND_WATCH=1` is set to skip auto-build and watch.
-- `pnpm run docs:build:phase:snippets` still walks the workspace, renders Twoslash bundles, and writes JSON
+- `pnpm exec vp run -w docs:build:phase:snippets` still walks the workspace, renders Twoslash bundles, and writes JSON
   artefacts plus a manifest to `docs/node_modules/.astro-twoslash-code/` for ad-hoc or CI usage.
 - Snippet builds render imported entry files with Twoslash and support-file tabs with syntax
   highlighting.
@@ -59,5 +59,5 @@ component always reflects the pre-rendered bundle stored in `docs/node_modules/.
 ## Testing
 
 - Always run `CI=1 pnpm exec vitest run --config packages/@local/astro-twoslash-code/vitest.config.ts src/cli/snippets.render.test.ts`
-  and `CI=1 pnpm run docs:build:phase:snippets` after modifying snippet code or the pipeline.
+  and `CI=1 pnpm exec vp run -w docs:build:phase:snippets` after modifying snippet code or the pipeline.
 - Nightly/docs CI reuses the cached artefacts and will fail if the snippets no longer compile.
