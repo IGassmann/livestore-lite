@@ -15,7 +15,8 @@ import {
 import { validateLinksCommand } from './validate-links.ts'
 
 const workspaceRoot =
-  process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run example commands through package scripts`)
+  process.env.WORKSPACE_ROOT ??
+  shouldNeverHappen(`WORKSPACE_ROOT is not set. Run example commands through package scripts`)
 const examplesDir = `${workspaceRoot}/examples`
 
 const exampleChoices = (() => {

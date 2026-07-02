@@ -157,7 +157,8 @@
     "@effect/tsgo": "0.15.0",
     "oxlint": "1.72.0",
     "oxfmt": "0.57.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "3.2.4"
   },
   "packageManager": "pnpm@11.3.0"
 }

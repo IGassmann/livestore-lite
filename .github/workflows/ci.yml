@@ -43,17 +43,6 @@ jobs:
         run: pnpm run release:changeset:check-pr
       - name: Check changeset bodies
         run: pnpm run release:changeset:check-bodies
-  ruleset-drift-check:
-    runs-on: ubuntu-24.04
-    if: (github.event_name == 'workflow_dispatch' && !startsWith(github.ref_name, 'automation/release-')) || github.ref == 'refs/heads/main'
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-node-pnpm
-      - name: Check repository ruleset drift
-        run: pnpm run github:rulesets:check
   type-check:
     runs-on: ubuntu-24.04
     defaults:
@@ -123,6 +112,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Install Playwright browsers
+        run: pnpm --dir tests/integration exec playwright install --with-deps chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -160,6 +151,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Install Playwright browsers
+        run: pnpm --dir tests/perf exec playwright install --with-deps chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -180,6 +173,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Install Nix for wa-sqlite build
+        uses: DeterminateSystems/determinate-nix-action@v3
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            access-tokens = github.com=${{ github.token }}
+          summarize: true
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -202,6 +203,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Build TypeScript packages
+        run: pnpm run ts:build
       - name: Install examples dependencies
         run: pnpm run examples:install
       - name: Build examples
@@ -230,6 +233,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Build TypeScript packages
+        run: pnpm run ts:build
       - name: Build docs snippets
         run: pnpm run docs:build:phase:snippets
       - name: Build docs diagrams

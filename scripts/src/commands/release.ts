@@ -569,7 +569,8 @@ export const releasePlanCommand = Cli.Command.make(
     npmTag: Cli.Options.text('npm-tag').pipe(Cli.Options.withDefault('latest')),
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+        process.env.WORKSPACE_ROOT ??
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
       ),
     ),
   },
@@ -592,7 +593,8 @@ export const releaseStableCommand = Cli.Command.make(
     ),
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+        process.env.WORKSPACE_ROOT ??
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
       ),
     ),
     tscBin: Cli.Options.text('tsc-bin').pipe(Cli.Options.optional),
@@ -649,7 +651,8 @@ export const releaseSnapshotCommand = Cli.Command.make(
     ),
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+        process.env.WORKSPACE_ROOT ??
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
       ),
     ),
     versionOption: Cli.Options.text('version').pipe(Cli.Options.optional),
@@ -708,7 +711,8 @@ export const releaseNotesExtractCommand = Cli.Command.make(
     plan: Cli.Options.text('plan').pipe(Cli.Options.withDefault('release/release-plan.json')),
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+        process.env.WORKSPACE_ROOT ??
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
       ),
     ),
   },
