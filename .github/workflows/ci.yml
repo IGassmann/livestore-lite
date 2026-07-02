@@ -35,7 +35,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run lint checks
-        run: pnpm exec vp run ci:lint
+        run: pnpm exec vp run -v ci:lint
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -74,7 +74,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run type-check
-        run: pnpm exec vp run ci:ts:build
+        run: pnpm exec vp run -v ci:ts:build
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -98,7 +98,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run unit tests
-        run: pnpm exec vp run ci:test:unit
+        run: pnpm exec vp run -v ci:test:unit
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -259,7 +259,7 @@ jobs:
       - name: Install examples dependencies
         run: pnpm run examples:install
       - name: Build examples
-        run: pnpm exec vp run ci:examples:build
+        run: pnpm exec vp run -v ci:examples:build-ready
       - name: Install example Playwright browsers
         run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
       - name: Test examples
@@ -317,10 +317,6 @@ jobs:
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Configure Puppeteer cache
         run: echo "PUPPETEER_CACHE_DIR=${RUNNER_TEMP}/puppeteer" >> "$GITHUB_ENV"
-      - name: Build TypeScript packages
-        run: pnpm exec vp run ci:ts:build
-      - name: Build docs snippets
-        run: pnpm exec vp run ci:docs:snippets
       - name: Install tldraw Chrome
         run: |
           chrome_path="$(pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome --format '{{path}}' | tail -n 1)"
@@ -329,12 +325,10 @@ jobs:
             exit 1
           fi
           echo "PUPPETEER_EXECUTABLE_PATH=$chrome_path" >> "$GITHUB_ENV"
-      - name: Build docs diagrams
-        run: pnpm exec vp run ci:docs:diagrams
       - name: Install docs Playwright browser
         run: pnpm --dir docs exec playwright install --with-deps chromium
-      - name: Build Astro docs bundle
-        run: pnpm exec vp run ci:docs:astro
+      - name: Build docs
+        run: pnpm exec vp run -v ci:docs:build
       - name: Collect docs build diagnostics on failure
         if: ${{ failure() }}
         run: pnpm run docs:build:diagnostics
