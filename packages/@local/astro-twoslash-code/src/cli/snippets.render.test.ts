@@ -183,6 +183,27 @@ describe('renderSnippet integration', () => {
     expect(sanitized).toBe(source)
   })
 
+  it('removes standalone cut markers from syntax-only rendering', () => {
+    const code = __internal.prepareSyntaxOnlyCode(
+      ['const before = true', '// ---cut---', 'const after = true', ''].join('\n'),
+    )
+
+    expect(code).toBe(['const before = true', 'const after = true', ''].join('\n'))
+  })
+
+  it('renders support files without Twoslash in local syntax mode', async () => {
+    const entryFilePath = path.join(examplePaths.snippetAssetsRoot, 'main.ts')
+    const bundle = buildSnippetBundle({ entryFilePath, baseDir: examplePaths.snippetAssetsRoot })
+
+    const rendered = await Effect.runPromise(__internal.renderSyntaxSnippet(exampleRenderer, bundle, 'utils.ts'))
+    const html = rendered.html ?? ''
+
+    expect(rendered.meta).toBe('')
+    expect(rendered.diagnostics).toEqual([])
+    expect(stripMarkup(html)).toMatch(/export const\s+greet\s*=\s*\(\s*name\s*:\s*string/)
+    expect(html).not.toContain('twoslash-popup-container')
+  })
+
   it('emits isolated HTML for each file in a multi-file snippet', async () => {
     const entryFilePath = path.join(examplePaths.snippetAssetsRoot, 'main.ts')
     const bundle = buildSnippetBundle({ entryFilePath, baseDir: examplePaths.snippetAssetsRoot })

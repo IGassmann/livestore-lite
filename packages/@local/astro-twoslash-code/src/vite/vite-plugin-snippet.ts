@@ -7,6 +7,7 @@ import { shouldNeverHappen } from '@livestore/utils'
 
 import { createExpressiveCodeConfig, normalizeRuntimeOptions, type TwoslashRuntimeOptions } from '../expressive-code.ts'
 import { formatRebuildInstruction, resolveProjectPaths, type TwoslashProjectPaths } from '../project-paths.ts'
+import { createSnippetManifestConfigHash } from '../snippet-render-policy.ts'
 import { buildSnippetBundle, type SnippetBundle } from './snippet-graph.ts'
 
 const hashString = (value: string): string => crypto.createHash('sha256').update(value).digest('hex')
@@ -338,8 +339,8 @@ export const createTwoslashSnippetPlugin = (options: TwoslashSnippetPluginOption
       }
       try {
         const { fingerprintHash } = createExpressiveCodeConfig(paths, runtimeOptions)
-        expectedConfigHash = fingerprintHash
-        return fingerprintHash
+        expectedConfigHash = createSnippetManifestConfigHash(fingerprintHash)
+        return expectedConfigHash
       } catch (cause) {
         const reason = cause instanceof Error ? cause.message : String(cause)
         throw new Error(`Unable to compute Expressive Code configuration (${reason}). ${rebuildInstruction}`, {

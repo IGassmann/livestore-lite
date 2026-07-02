@@ -42,6 +42,8 @@ component always reflects the pre-rendered bundle stored in `docs/node_modules/.
   repo task runner, `LS_SKIP_SNIPPET_AUTO_BUILD_AND_WATCH=1` is set to skip auto-build and watch.
 - `pnpm run docs:build:phase:snippets` still walks the workspace, renders Twoslash bundles, and writes JSON
   artefacts plus a manifest to `docs/node_modules/.astro-twoslash-code/` for ad-hoc or CI usage.
+- Snippet builds render imported entry files with Twoslash and support-file tabs with syntax
+  highlighting.
 - The cache format is stable: each artefact lists the bundle’s source files, their hashes, and the
   rendered HTML/diagnostics per file. The manifest aggregates bundle hashes and global styles
   emitted by Expressive Code.

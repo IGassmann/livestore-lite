@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createExpressiveCodeConfig } from '../expressive-code.ts'
 import { resolveProjectPaths } from '../project-paths.ts'
+import { createSnippetManifestConfigHash } from '../snippet-render-policy.ts'
 import { createTwoslashSnippetPlugin } from './vite-plugin-snippet.ts'
 
 const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex')
@@ -73,6 +74,7 @@ const createFixtureProject = (): FixtureContext => {
 
   const paths = resolveProjectPaths(projectRoot)
   const { fingerprintHash } = createExpressiveCodeConfig(paths, {})
+  const configHash = createSnippetManifestConfigHash(fingerprintHash)
 
   const manifest = {
     entries: [
@@ -85,7 +87,7 @@ const createFixtureProject = (): FixtureContext => {
     baseStyles: '.expressive-code { display: block; }',
     themeStyles: '',
     jsModules: ['export const init = () => {};'],
-    configHash: fingerprintHash,
+    configHash,
   }
   fs.writeFileSync(path.join(cacheDir, 'manifest.json'), JSON.stringify(manifest))
 
@@ -178,6 +180,7 @@ const createMultiFileFixtureProject = (): FixtureContext => {
 
   const paths = resolveProjectPaths(projectRoot)
   const { fingerprintHash } = createExpressiveCodeConfig(paths, {})
+  const configHash = createSnippetManifestConfigHash(fingerprintHash)
 
   const manifest = {
     entries: [
@@ -190,7 +193,7 @@ const createMultiFileFixtureProject = (): FixtureContext => {
     baseStyles: '',
     themeStyles: '',
     jsModules: [],
-    configHash: fingerprintHash,
+    configHash,
   }
   fs.writeFileSync(path.join(cacheDir, 'manifest.json'), JSON.stringify(manifest))
 
