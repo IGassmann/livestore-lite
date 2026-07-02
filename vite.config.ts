@@ -23,7 +23,6 @@ const bash = (command: string) => `/bin/bash -lc ${shellQuote(command)}`
 const repoCli = (args: string) => `WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/repo-cli.ts ${args}`
 const nodeTs = (file: string, args = '') =>
   `WORKSPACE_ROOT=$PWD node --experimental-strip-types ${file}${args.length === 0 ? '' : ` ${args}`}`
-const runTask = (task: string) => `vp run -w ${task}`
 
 const cleanArtifacts = [
   'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
@@ -42,7 +41,7 @@ const checkMdImports = [
 
 const releaseChangesetVersion = [
   "git ls-files '*package.json' | xargs chmod u+w",
-  runTask('changeset:version'),
+  'vpr -w changeset:version',
   nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
   nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
   nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
@@ -86,7 +85,7 @@ const devtoolsCertifyLiveness = [
   'mkdir -p "$out_dir"',
   'export LIVESTORE_DEVTOOLS_OUT_DIR="$out_dir"',
   'export LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK=1',
-  runTask('release:devtools-artifact:repack-dryrun:no-install'),
+  'vpr -w release:devtools-artifact:repack-dryrun:no-install',
   'unset LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK',
   'repacked_tarball="$out_dir/livestore-devtools-vite-$LIVESTORE_RELEASE_VERSION.tgz"',
   'if [ ! -f "$repacked_tarball" ]; then echo "Expected repacked DevTools tarball not found: $repacked_tarball" >&2; exit 1; fi',
@@ -466,13 +465,13 @@ export default defineConfig({
       },
       'docs:search:sync:prod': {
         command:
-          ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && export MXBAI_VECTOR_STORE_ID="${MXBAI_VECTOR_STORE_ID:-${MXBAI_VECTOR_STORE_ID_PROD:-}}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID or MXBAI_VECTOR_STORE_ID_PROD secret}" && vp run @local/docs#prod:docs:sync:env',
+          ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && export MXBAI_VECTOR_STORE_ID="${MXBAI_VECTOR_STORE_ID:-${MXBAI_VECTOR_STORE_ID_PROD:-}}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID or MXBAI_VECTOR_STORE_ID_PROD secret}" && vpr @local/docs#prod:docs:sync:env',
         cache: false,
       },
 
       'examples:build:src': {
         command:
-          'npm_config_manage_package_manager_versions=false vp run --filter "livestore-example-*" --concurrency-limit 1 build',
+          'npm_config_manage_package_manager_versions=false vpr --filter "livestore-example-*" --concurrency-limit 1 build',
         dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
         ...cacheable,
@@ -554,7 +553,7 @@ export default defineConfig({
         ...cacheable,
       },
       'lint:fix': {
-        command: [runTask('lint:fix:format'), runTask('lint:fix:oxlint')],
+        command: ['vpr -w lint:fix:format', 'vpr -w lint:fix:oxlint'],
         cache: false,
       },
       'lint:fix:format': {
@@ -572,7 +571,7 @@ export default defineConfig({
         ...cacheable,
       },
       'lint:full:fix': {
-        command: [runTask('lint:fix'), runTask('lint:check:md-imports')],
+        command: ['vpr -w lint:fix', 'vpr -w lint:check:md-imports'],
         cache: false,
       },
 
@@ -605,7 +604,7 @@ export default defineConfig({
         ...cacheable,
       },
       'release:changeset:status': {
-        command: `${runTask('changeset:status')} --since "\${CHANGESET_BASE_REF:-origin/main}"`,
+        command: 'vpr -w changeset:status --since "${CHANGESET_BASE_REF:-origin/main}"',
         env: ['CHANGESET_BASE_REF'],
         ...noOutput,
         ...cacheable,
@@ -677,12 +676,12 @@ export default defineConfig({
       },
 
       'setup:run': {
-        command: runTask('ts:build'),
+        command: 'vpr -w ts:build',
         dependsOn: ['pnpm:install'],
         cache: false,
       },
       'setup:strict': {
-        command: runTask('ts:build'),
+        command: 'vpr -w ts:build',
         dependsOn: ['pnpm:install'],
         cache: false,
       },
@@ -809,7 +808,7 @@ export default defineConfig({
         ...cacheable,
       },
       typecheck: {
-        command: runTask('ts:check'),
+        command: 'vpr -w ts:check',
         ...noOutput,
         ...cacheable,
       },
