@@ -207,7 +207,6 @@ in
     # Playwright browser drivers and environment setup
     inputs.playwright.devenvModules.default
     # Shared task modules from effect-utils
-    taskModules.genie
     (taskModules.megarepo { syncAll = !ci; })
     (taskModules.ts { tsconfigFile = "tsconfig.dev.json"; })
     (taskModules.check {
@@ -258,27 +257,6 @@ in
         ".oxfmtrc.json"
         ".oxlintrc.json"
       ];
-      geniePatterns = [
-        ".github/workflows/*.genie.ts"
-        ".oxfmtrc.json.genie.ts"
-        ".oxlintrc.json.genie.ts"
-        "scripts/*.genie.ts"
-        "docs/*.genie.ts"
-        "docs/src/**/*.genie.ts"
-        "tests/**/*.genie.ts"
-        "packages/@livestore/*/*.genie.ts"
-        "packages/@local/*/*.genie.ts"
-        "packages/@local/*/**/*.genie.ts"
-      ];
-      genieCoverageDirs = [
-        "packages"
-        "tests"
-        "docs"
-        "scripts"
-      ];
-      # TODO(oep-1n3.10): Keep wa-sqlite unmanaged by Genie for now.
-      # Effect-utils now supports exclusions for the coverage check.
-      genieCoverageExcludes = [ "packages/@livestore/wa-sqlite/" ];
       tsconfig = "tsconfig.dev.json";
     })
     (taskModules.ts-effect-lsp {
@@ -290,7 +268,6 @@ in
       requiredTasks = [ ];
       optionalTasks = [
         "pnpm:install"
-        "genie:run"
         "ts:build"
       ];
     })
@@ -339,7 +316,6 @@ in
   ]
   ++ [ effectUtilsPackages.effect-tsgo ]
   ++ [
-    effectUtilsPackages.genie
     effectUtils.packages.${pkgs.system}.megarepo
     pkgs.jq
     pkgs.unzip
@@ -460,18 +436,16 @@ in
   };
 
   tasks."release:changeset:version" = {
-    description = "Prepare a Changesets release plan, regenerate manifests, and preserve prerelease intent when needed";
+    description = "Prepare a Changesets release plan and preserve prerelease intent when needed";
     exec = ''
       set -euo pipefail
       cd "$DEVENV_ROOT"
 
-      # Changesets edits generated package manifests before Genie re-materializes
-      # them from release/version.json.
+      # Keep the chmod while older checkouts may still have read-only generated manifests.
       git ls-files '*package.json' | xargs chmod u+w
       DT_PASSTHROUGH=1 pnpm exec changeset version
       bun scripts/src/commands/changesets.ts restore-prerelease-changesets
       bun scripts/src/commands/changesets.ts sync-version-source
-      DT_PASSTHROUGH=1 genie
       bun scripts/src/commands/changesets.ts sync-standalone-consumers
       DT_PASSTHROUGH=1 pnpm install --lockfile-only --no-frozen-lockfile
       bun scripts/src/commands/changesets.ts assert-fixed-versions

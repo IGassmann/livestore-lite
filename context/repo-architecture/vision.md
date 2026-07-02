@@ -32,8 +32,8 @@
 
 - **Composition without duplicated infrastructure.** Contrib consumes core
   through megarepo materialization and reuses core/effect-utils tooling through
-  genie composition. The repos share setup patterns without copying workflow
-  logic.
+  shared checked-in configuration. The repos share setup patterns without
+  copying workflow logic.
 
 - **Version and docs coherence.** Core and contrib publish lockstep package
   versions, and the core docs site renders documentation for both repositories.
@@ -46,8 +46,8 @@
   LiveStore package family, docs site, and release story.
 - **Not a package rename.** npm package names and import paths stay under
   `@livestore/*`.
-- **Not duplicated tooling.** Devenv, genie, lint/format policy, CI shape,
-  labels, and repo settings are derived from shared helpers.
+- **Not duplicated tooling.** Devenv, lint/format policy, CI shape, labels, and
+  repo settings are derived from shared helpers.
 - **Not a support taxonomy.** The repository boundary is the durable ownership
   model. Additional package classification schemes are not part of this
   architecture.

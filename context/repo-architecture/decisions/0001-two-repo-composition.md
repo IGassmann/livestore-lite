@@ -42,14 +42,14 @@ exact versions during publish.
 Lockstep releases cost extra publish events, but remove ambiguity from the
 package graph.
 
-## Relative Genie Imports
+## Historical Relative Generator Imports
 
-Contrib imports core genie helpers through `../repos/livestore/...`, not
-`#mr/livestore/...`.
+Contrib's generator helpers imported core helpers through `../repos/livestore/...`,
+not `#mr/livestore/...`.
 
 `#mr` specifiers resolve against the file's own megarepo root. Relative imports
-enter core's source tree first, allowing core's internal `#mr/effect-utils/...`
-imports to resolve against core's materialized members.
+entered core's source tree first, allowing core's internal
+`#mr/effect-utils/...` imports to resolve against core's materialized members.
 
 Core does not own the final contrib package or example manifest. Core exports
 core package metadata and reusable generator helpers; contrib owns its local
