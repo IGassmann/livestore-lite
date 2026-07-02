@@ -118,7 +118,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
       - name: Install Playwright browsers
-        run: pnpm --dir tests/integration exec playwright install --with-deps chromium
+        run: pnpm --dir tests/integration exec playwright install chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -157,7 +157,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ./.github/actions/setup-node-pnpm
       - name: Install Playwright browsers
-        run: pnpm --dir tests/perf exec playwright install --with-deps chromium
+        run: pnpm --dir tests/perf exec playwright install chromium
       - name: Set OTEL_EXPORTER_OTLP_HEADERS environment variable
         env:
           GRAFANA_CLOUD_OTLP_INSTANCE_ID: '1227256'
@@ -215,7 +215,7 @@ jobs:
       - name: Build examples
         run: pnpm run examples:build:src
       - name: Install example Playwright browsers
-        run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
+        run: pnpm --dir examples/web-linearlite exec playwright install chromium
       - name: Test examples
         run: pnpm run examples:test
       - id: cloudflare-deploy
