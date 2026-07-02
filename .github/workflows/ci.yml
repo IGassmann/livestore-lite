@@ -26,8 +26,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Restore Vite Task cache
+        id: vite-task-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run lint checks
-        run: pnpm run lint:full
+        run: vp run ci:lint
+      - name: Save Vite Task cache
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}
   changeset-check:
     runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
@@ -51,8 +65,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Restore Vite Task cache
+        id: vite-task-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run type-check
-        run: pnpm run ts:build
+        run: vp run ci:ts:build
+      - name: Save Vite Task cache
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}
   test-unit:
     runs-on: ubuntu-24.04
     defaults:
@@ -61,10 +89,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
-      - name: Build TypeScript packages
-        run: pnpm run ts:build
+      - name: Restore Vite Task cache
+        id: vite-task-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run unit tests
-        run: pnpm run test:unit
+        run: vp run ci:test:unit
+      - name: Save Vite Task cache
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}
   test-integration-sync-provider:
     strategy:
       fail-fast: false
@@ -208,12 +248,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
-      - name: Build TypeScript packages
-        run: pnpm run ts:build
+      - name: Restore Vite Task cache
+        id: vite-task-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Install examples dependencies
         run: pnpm run examples:install
       - name: Build examples
-        run: pnpm run examples:build:src
+        run: vp run ci:examples:build
       - name: Install example Playwright browsers
         run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
       - name: Test examples
@@ -247,6 +293,12 @@ jobs:
       - name: Validate hosted example links
         if: ${{ steps.deploy-examples.outcome == 'success' }}
         run: pnpm run examples:validate-links
+      - name: Save Vite Task cache
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}
   build-deploy-docs:
     runs-on: ubuntu-24.04
     defaults:
@@ -255,20 +307,34 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
+      - name: Restore Vite Task cache
+        id: vite-task-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Configure Puppeteer cache
         run: echo "PUPPETEER_CACHE_DIR=${RUNNER_TEMP}/puppeteer" >> "$GITHUB_ENV"
       - name: Build TypeScript packages
-        run: pnpm run ts:build
+        run: vp run ci:ts:build
       - name: Build docs snippets
-        run: pnpm run docs:build:phase:snippets
+        run: vp run ci:docs:snippets
       - name: Install tldraw Chrome
-        run: pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome
+        run: |
+          chrome_path="$(pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome --format '{{path}}' | tail -n 1)"
+          if [[ ! -x "$chrome_path" ]]; then
+            echo "Installed Chrome executable not found at $chrome_path" >&2
+            exit 1
+          fi
+          echo "PUPPETEER_EXECUTABLE_PATH=$chrome_path" >> "$GITHUB_ENV"
       - name: Build docs diagrams
-        run: pnpm run docs:build:phase:diagrams
+        run: vp run ci:docs:diagrams
       - name: Install docs Playwright browser
         run: pnpm --dir docs exec playwright install --with-deps chromium
       - name: Build Astro docs bundle
-        run: pnpm run docs:build:phase:astro
+        run: vp run ci:docs:astro
       - name: Collect docs build diagnostics on failure
         if: ${{ failure() }}
         run: pnpm run docs:build:diagnostics
@@ -303,3 +369,9 @@ jobs:
           path: '${{ runner.temp }}/workflow-reports/docs-deploy.jsonl'
           if-no-files-found: warn
           retention-days: 14
+      - name: Save Vite Task cache
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.vite-task-cache.outputs.cache-primary-key }}

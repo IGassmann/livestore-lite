@@ -57,6 +57,9 @@ overrides:
   '@tanstack/start-client-core': 1.145.7
 
 packageExtensions:
+  '@voidzero-dev/vite-plus-core':
+    dependencies:
+      vite-plus: 0.2.2
   react-error-boundary:
     dependencies:
       '@types/react': 19.2.7
@@ -73,6 +76,14 @@ packageExtensions:
   typedoc:
     dependencies:
       typedoc-plugin-markdown: ^4.8.1
+  vite-plus:
+    dependencies:
+      '@voidzero-dev/vite-plus-darwin-arm64': 0.2.2
+      '@voidzero-dev/vite-plus-darwin-x64': 0.2.2
+      '@voidzero-dev/vite-plus-linux-arm64-gnu': 0.2.2
+      '@voidzero-dev/vite-plus-linux-arm64-musl': 0.2.2
+      '@voidzero-dev/vite-plus-linux-x64-gnu': 0.2.2
+      '@voidzero-dev/vite-plus-linux-x64-musl': 0.2.2
 
 peerDependencyRules:
   allowedVersions:
@@ -96,9 +107,9 @@ allowBuilds:
   workerd: true
 
 supportedArchitectures:
-  os: [linux, darwin]
-  cpu: [x64, arm64]
-  libc: [glibc, musl]
+  os: [ linux, darwin ]
+  cpu: [ x64, arm64 ]
+  libc: [ glibc, musl ]
 
 dedupePeerDependents: true
 
@@ -123,3 +134,15 @@ verifyStoreIntegrity: true
 strictStorePkgContentCheck: true
 
 pmOnFail: ignore
+
+minimumReleaseAgeExclude:
+  - '@voidzero-dev/vite-plus-core@0.2.2'
+  - '@voidzero-dev/vite-plus-darwin-arm64@0.2.2'
+  - '@voidzero-dev/vite-plus-darwin-x64@0.2.2'
+  - '@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.2'
+  - '@voidzero-dev/vite-plus-linux-arm64-musl@0.2.2'
+  - '@voidzero-dev/vite-plus-linux-x64-gnu@0.2.2'
+  - '@voidzero-dev/vite-plus-linux-x64-musl@0.2.2'
+  - '@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.2'
+  - '@voidzero-dev/vite-plus-win32-x64-msvc@0.2.2'
+  - vite-plus@0.2.2
