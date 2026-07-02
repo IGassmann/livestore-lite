@@ -10,7 +10,6 @@
     "**/build/**",
     "**/out/**",
     "**/.wrangler/**",
-    "**/.vercel/**",
     "**/.netlify/**",
     "**/.astro/**",
     "**/.nitro/**",
