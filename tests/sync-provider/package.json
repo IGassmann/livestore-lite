@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "4.20251118.0",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@livestore/adapter-cloudflare": "workspace:^",
     "@livestore/common": "workspace:^",
     "@livestore/common-cf": "workspace:^",

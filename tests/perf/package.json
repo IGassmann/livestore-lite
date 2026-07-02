@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test",
-    "test-app": "vite build test-app && vite preview test-app",
-    "test-app:dev": "vite test-app",
+    "test-app": "vite build test-app --configLoader runner && vite preview test-app --configLoader runner",
+    "test-app:dev": "vite test-app --configLoader runner",
     "test:profiler": "PERF_PROFILER=1 pnpm test"
   },
   "dependencies": {
@@ -20,11 +20,11 @@
     "@opentelemetry/sdk-trace-base": "2.2.0",
     "@opentelemetry/sdk-trace-web": "2.2.0",
     "@playwright/test": "1.60.0",
-    "@vitejs/plugin-react": "5.1.2",
+    "@vitejs/plugin-react": "6.0.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "typescript": "5.9.3",
-    "vite": "7.3.1"
+    "vite": "8.1.3"
   },
   "devDependencies": {
     "@effect/ai": "0.35.0",

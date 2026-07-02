@@ -16,25 +16,25 @@
     "todomvc-app-css": "2.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.13.12",
-    "@cloudflare/workers-types": "4.20251118.0",
+    "@cloudflare/vite-plugin": "1.42.4",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@livestore/devtools-vite": "0.4.0-dev.25",
     "@playwright/test": "1.60.0",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.1.2",
+    "@vitejs/plugin-react": "6.0.3",
     "typescript": "5.9.3",
-    "vite": "7.3.1",
-    "wrangler": "4.42.2"
+    "vite": "8.1.3",
+    "wrangler": "4.106.0"
   },
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "vite build --configLoader runner",
     "deploy": "pnpm run build && pnpm exec wrangler deploy",
-    "dev": "vite --force",
-    "preview": "vite preview",
+    "dev": "vite --configLoader runner --force",
+    "preview": "vite preview --configLoader runner",
     "test": "playwright test"
   },
   "pnpm": {
@@ -71,7 +71,7 @@
       "@opentelemetry/resources": "2.2.0",
       "@standard-schema/spec": "1.0.0",
       "effect": "3.21.0",
-      "@cloudflare/workers-types": "4.20251118.0",
+      "@cloudflare/workers-types": "4.20260702.1",
       "@effect/workflow": "0.16.0"
     }
   }

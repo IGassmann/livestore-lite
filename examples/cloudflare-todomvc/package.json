@@ -4,14 +4,14 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@cloudflare/workers-types": "4.20251118.0",
+    "@cloudflare/workers-types": "4.20260702.1",
     "@livestore/adapter-cloudflare": "0.4.0",
     "@livestore/livestore": "0.4.0",
     "@livestore/peer-deps": "0.4.0",
     "@livestore/sync-cf": "0.4.0"
   },
   "devDependencies": {
-    "wrangler": "4.42.2"
+    "wrangler": "4.106.0"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -55,7 +55,7 @@
       "@opentelemetry/resources": "2.2.0",
       "@standard-schema/spec": "1.0.0",
       "effect": "3.21.0",
-      "@cloudflare/workers-types": "4.20251118.0",
+      "@cloudflare/workers-types": "4.20260702.1",
       "@effect/workflow": "0.16.0"
     }
   }
