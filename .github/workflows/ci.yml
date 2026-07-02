@@ -35,7 +35,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run lint checks
-        run: vp run ci:lint
+        run: pnpm exec vp run ci:lint
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -74,7 +74,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run type-check
-        run: vp run ci:ts:build
+        run: pnpm exec vp run ci:ts:build
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -98,7 +98,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run unit tests
-        run: vp run ci:test:unit
+        run: pnpm exec vp run ci:test:unit
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -259,7 +259,7 @@ jobs:
       - name: Install examples dependencies
         run: pnpm run examples:install
       - name: Build examples
-        run: vp run ci:examples:build
+        run: pnpm exec vp run ci:examples:build
       - name: Install example Playwright browsers
         run: pnpm --dir examples/web-linearlite exec playwright install --with-deps chromium
       - name: Test examples
@@ -318,9 +318,9 @@ jobs:
       - name: Configure Puppeteer cache
         run: echo "PUPPETEER_CACHE_DIR=${RUNNER_TEMP}/puppeteer" >> "$GITHUB_ENV"
       - name: Build TypeScript packages
-        run: vp run ci:ts:build
+        run: pnpm exec vp run ci:ts:build
       - name: Build docs snippets
-        run: vp run ci:docs:snippets
+        run: pnpm exec vp run ci:docs:snippets
       - name: Install tldraw Chrome
         run: |
           chrome_path="$(pnpm --dir packages/@local/astro-tldraw exec puppeteer browsers install chrome --format '{{path}}' | tail -n 1)"
@@ -330,11 +330,11 @@ jobs:
           fi
           echo "PUPPETEER_EXECUTABLE_PATH=$chrome_path" >> "$GITHUB_ENV"
       - name: Build docs diagrams
-        run: vp run ci:docs:diagrams
+        run: pnpm exec vp run ci:docs:diagrams
       - name: Install docs Playwright browser
         run: pnpm --dir docs exec playwright install --with-deps chromium
       - name: Build Astro docs bundle
-        run: vp run ci:docs:astro
+        run: pnpm exec vp run ci:docs:astro
       - name: Collect docs build diagnostics on failure
         if: ${{ failure() }}
         run: pnpm run docs:build:diagnostics
