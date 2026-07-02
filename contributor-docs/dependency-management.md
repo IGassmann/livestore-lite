@@ -89,7 +89,7 @@ Peer dependencies must use **explicit version ranges** instead of catalog refere
 
 ### Enforcement
 
-The Genie configuration system enforces peer dependency conventions through package.json generation.
+Package manifests now enforce peer dependency conventions directly.
 
 ## Expected Warnings
 

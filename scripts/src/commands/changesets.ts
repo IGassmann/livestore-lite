@@ -230,6 +230,7 @@ const restorePrereleaseChangesets = () => {
 type DependencySection = Record<string, string>
 
 type PackageJson = {
+  version?: string
   dependencies?: DependencySection
   devDependencies?: DependencySection
   peerDependencies?: DependencySection
@@ -318,7 +319,19 @@ const syncVersionSource = () => {
   const npmTag = process.env.LIVESTORE_NPM_TAG ?? 'latest'
   const version = releaseVersionForNpmTag(packageVersion, npmTag)
   writeJson('release/version.json', { version })
-  console.log(`Synced release/version.json to ${version}`)
+
+  let changedPackageCount = 0
+  for (const pkg of publicLivestorePackages()) {
+    const packageJsonPath = `${pkg.dir}/package.json`
+    const packageJson = readJson<PackageJson>(packageJsonPath)
+    if (packageJson.version === version) continue
+
+    packageJson.version = version
+    writeJson(packageJsonPath, packageJson)
+    changedPackageCount++
+  }
+
+  console.log(`Synced release/version.json and ${changedPackageCount} package version(s) to ${version}`)
 }
 
 const writeReleasePlan = (flags: Map<string, string | true>) => {

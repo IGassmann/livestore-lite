@@ -16,11 +16,17 @@ type TDependencyField = 'dependencies' | 'devDependencies' | 'peerDependencies' 
 
 type TMutablePackageJson = {
   name?: string
+  version?: string
   private?: boolean
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   peerDependencies?: Record<string, string>
   optionalDependencies?: Record<string, string>
+}
+
+type TPackageJsonSnapshot = {
+  path: string
+  content: string
 }
 
 const ReleasePlan = Schema.Struct({
@@ -186,6 +192,59 @@ const writeReleasePlan = (cwd: string, plan: TReleasePlan) =>
 const packageJsonPathFromPackageName = (cwd: string, packageName: string) =>
   `${cwd}/packages/@livestore/${packageName.replace('@livestore/', '')}/package.json`
 
+const snapshotPackageJsonFiles = ({ cwd, packages }: { cwd: string; packages: ReadonlyArray<string> }) =>
+  Effect.gen(function* () {
+    const fsEffect = yield* FileSystem.FileSystem
+
+    return yield* Effect.forEach(packages, (pkg) =>
+      Effect.gen(function* () {
+        const path = packageJsonPathFromPackageName(cwd, pkg)
+        const content = yield* fsEffect.readFileString(path)
+        return { path, content }
+      }),
+    )
+  })
+
+const restorePackageJsonFiles = (snapshots: ReadonlyArray<TPackageJsonSnapshot>) =>
+  Effect.gen(function* () {
+    const fsEffect = yield* FileSystem.FileSystem
+
+    yield* Effect.forEach(snapshots, ({ path, content }) => fsEffect.writeFileString(path, content), { discard: true })
+  }).pipe(
+    Effect.catchAll((error) => Effect.logWarning(`Failed to restore release package files: ${toErrorMessage(error)}`)),
+  )
+
+const syncReleasePackageVersions = ({
+  cwd,
+  packages,
+  version,
+}: {
+  cwd: string
+  packages: ReadonlyArray<string>
+  version: string
+}) =>
+  Effect.gen(function* () {
+    const fsEffect = yield* FileSystem.FileSystem
+
+    for (const packageName of packages) {
+      const packageJsonPath = packageJsonPathFromPackageName(cwd, packageName)
+      const packageJson = yield* fsEffect.readFileString(packageJsonPath).pipe(
+        Effect.flatMap((content) =>
+          Effect.try({
+            try: () => JSON.parse(content) as TMutablePackageJson,
+            catch: (cause) => new PackageJsonParseError({ message: `Failed to parse ${packageJsonPath}`, cause }),
+          }),
+        ),
+      )
+
+      if (packageJson.version === version) continue
+
+      packageJson.version = version
+      yield* fsEffect.writeFileString(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`)
+      yield* Effect.log(`Set ${packageName} package version to ${version}`)
+    }
+  })
+
 /**
  * Snapshot versions must collapse workspace and ranged internal deps to the
  * exact published snapshot version. Leaving prerelease ranges in place lets
@@ -210,8 +269,8 @@ const pinSnapshotDependencySpec = ({
 }
 
 /**
- * Rewrites internal dependency ranges after Genie generation so the published
- * snapshot graph is self-contained and installable outside the monorepo.
+ * Rewrites internal dependency ranges so the published snapshot graph is
+ * self-contained and installable outside the monorepo.
  */
 export const rewriteSnapshotInternalDependencyRanges = ({
   cwd,
@@ -269,8 +328,8 @@ export const rewriteSnapshotInternalDependencyRanges = ({
 
 /**
  * Enumerates the publishable LiveStore release group packages for snapshot releases.
- * Topology is the package graph authority; generated package manifests are still
- * checked so a missing/private/misnamed package cannot be published silently.
+ * Topology is the package graph authority; package manifests are still checked
+ * so a missing/private/misnamed package cannot be published silently.
  */
 const listSnapshotPackages = (cwd: string) =>
   Effect.gen(function* () {
@@ -367,19 +426,6 @@ const formatReleaseSummaryMarkdown = ({
     emptyMessage: '_No packages matched the release filter._',
   })
 
-const restoreGeneratedReleaseFiles = (cwd: string) =>
-  Effect.gen(function* () {
-    /** Restore original dev versions (read-only) and verify files are in sync. */
-    yield* cmd('DT_PASSTHROUGH=1 genie', { shell: true }).pipe(Effect.provide(CurrentWorkingDirectory.fromPath(cwd)))
-    yield* cmd('DT_PASSTHROUGH=1 genie --check', { shell: true }).pipe(
-      Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
-    )
-  }).pipe(
-    Effect.catchAll((error) =>
-      Effect.logWarning(`Failed to restore generated release files: ${toErrorMessage(error)}`),
-    ),
-  )
-
 const packPackageForPublish = ({ cwd, pkg, version }: { cwd: string; pkg: string; version: string }) =>
   Effect.gen(function* () {
     const fsEffect = yield* FileSystem.FileSystem
@@ -428,97 +474,93 @@ const publishReleasePackages = ({
   tscBin: string
 }) =>
   Effect.gen(function* () {
-    const isCI = process.env.CI === 'true' || process.env.CI === '1'
+    const packageJsonSnapshots = yield* snapshotPackageJsonFiles({ cwd, packages })
 
-    /**
-     * Regenerate all genie-managed files with the release version (writable for pnpm publish).
-     * TODO: Replace CLI invocations with genie SDK once skipValidation is available
-     * (https://github.com/overengineeringstudio/effect-utils/issues/196)
-     */
-    yield* cmd(`DT_PASSTHROUGH=1 LIVESTORE_RELEASE_VERSION=${version} genie --writeable`, { shell: true }).pipe(
-      Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
-    )
+    yield* Effect.gen(function* () {
+      const isCI = process.env.CI === 'true' || process.env.CI === '1'
 
-    yield* rewriteSnapshotInternalDependencyRanges({ cwd, snapshotPackages: packages, snapshotVersion: version })
+      yield* syncReleasePackageVersions({ cwd, packages, version })
+      yield* rewriteSnapshotInternalDependencyRanges({ cwd, snapshotPackages: packages, snapshotVersion: version })
 
-    /** Rebuild TypeScript so dist/ picks up the release version from package.json (emit-only, type checking is separate). */
-    yield* cmd(`DT_PASSTHROUGH=1 ${tscBin} --build tsconfig.dev.json --noCheck`, { shell: true }).pipe(
-      Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
-    )
-
-    for (const pkg of packages) {
-      const pkgDir = `${cwd}/packages/${pkg}`
-      const cwdLayer = CurrentWorkingDirectory.fromPath(pkgDir)
-
-      const alreadyPublished = yield* cmd(`npm view ${pkg}@${version} version`, {
-        stdout: 'pipe',
-        stderr: 'pipe',
-      }).pipe(
-        Effect.provide(cwdLayer),
-        Effect.as(true),
-        Effect.catchTag('CmdError', () => Effect.succeed(false)),
+      /** Rebuild TypeScript so dist/ picks up the release version from package.json (emit-only, type checking is separate). */
+      yield* cmd(`DT_PASSTHROUGH=1 ${tscBin} --build tsconfig.dev.json --noCheck`, { shell: true }).pipe(
+        Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
       )
 
-      if (alreadyPublished === true) {
-        if (dryRun === true || allowExisting === false) {
-          return yield* Effect.fail(new Error(`${pkg}@${version} already exists on npm`))
+      for (const pkg of packages) {
+        const pkgDir = `${cwd}/packages/${pkg}`
+        const cwdLayer = CurrentWorkingDirectory.fromPath(pkgDir)
+
+        const alreadyPublished = yield* cmd(`npm view ${pkg}@${version} version`, {
+          stdout: 'pipe',
+          stderr: 'pipe',
+        }).pipe(
+          Effect.provide(cwdLayer),
+          Effect.as(true),
+          Effect.catchTag('CmdError', () => Effect.succeed(false)),
+        )
+
+        if (alreadyPublished === true) {
+          if (dryRun === true || allowExisting === false) {
+            return yield* Effect.fail(new Error(`${pkg}@${version} already exists on npm`))
+          }
+
+          yield* Effect.log(`${pkg}@${version} already published, skipping`)
+          continue
         }
 
-        yield* Effect.log(`${pkg}@${version} already published, skipping`)
-        continue
-      }
-
-      const packedTarballPath = yield* packPackageForPublish({ cwd, pkg, version })
-      const publishArgs = [
-        'npm',
-        'publish',
-        packedTarballPath,
-        `--tag=${npmTag}`,
-        '--access=public',
-        '--ignore-scripts',
-      ]
-      if (dryRun === true) publishArgs.push('--dry-run')
-      const versionIsVisible = cmd(`npm view ${pkg}@${version} version`, { stdout: 'pipe', stderr: 'pipe' }).pipe(
-        Effect.provide(cwdLayer),
-        Effect.as(true),
-        Effect.catchTag('CmdError', () => Effect.succeed(false)),
-      )
-      yield* cmd(`DT_PASSTHROUGH=1 ${publishArgs.join(' ')}`, { shell: true }).pipe(
-        Effect.provide(cwdLayer),
-        Effect.catchTag('CmdError', (error) => {
-          if (isCI === false || dryRun === true || isSnapshotVersion(version) === false) return Effect.fail(error)
-
-          return versionIsVisible.pipe(
-            Effect.flatMap((isVisible) => {
-              if (isVisible === true) {
-                return Effect.logWarning(`${pkg}@${version} became visible after a failed publish; continuing`)
-              }
-
-              return Effect.logError(
-                [
-                  `Failed to publish ${pkg}@${version} from CI.`,
-                  'Snapshot publishing must authenticate through npm trusted publishing from .github/workflows/release.yml.',
-                  'Check that npm has this package configured for GitHub Actions trusted publishing and that this job uses a GitHub-hosted runner with id-token: write.',
-                ].join(' '),
-              ).pipe(Effect.zipRight(Effect.fail(error)))
-            }),
-          )
-        }),
-      )
-      yield* Effect.log(`${dryRun === true ? 'Dry-ran' : 'Published'} ${pkg}@${version}`)
-    }
-
-    if (dryRun === false) {
-      yield* Effect.log('Verifying packages are available on the registry...')
-      for (const pkg of packages) {
-        yield* cmd(`npm view ${pkg}@${version} version`, { stdout: 'pipe', stderr: 'pipe' }).pipe(
-          Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
-          Effect.retry(Schedule.spaced('5 seconds').pipe(Schedule.intersect(Schedule.recurs(60)))),
+        const packedTarballPath = yield* packPackageForPublish({ cwd, pkg, version })
+        const publishArgs = [
+          'npm',
+          'publish',
+          packedTarballPath,
+          `--tag=${npmTag}`,
+          '--access=public',
+          '--ignore-scripts',
+        ]
+        if (dryRun === true) publishArgs.push('--dry-run')
+        const versionIsVisible = cmd(`npm view ${pkg}@${version} version`, { stdout: 'pipe', stderr: 'pipe' }).pipe(
+          Effect.provide(cwdLayer),
+          Effect.as(true),
+          Effect.catchTag('CmdError', () => Effect.succeed(false)),
         )
-        yield* Effect.log(`Verified ${pkg}@${version}`)
+        yield* cmd(`DT_PASSTHROUGH=1 ${publishArgs.join(' ')}`, { shell: true }).pipe(
+          Effect.provide(cwdLayer),
+          Effect.catchTag('CmdError', (error) => {
+            if (isCI === false || dryRun === true || isSnapshotVersion(version) === false) return Effect.fail(error)
+
+            return versionIsVisible.pipe(
+              Effect.flatMap((isVisible) => {
+                if (isVisible === true) {
+                  return Effect.logWarning(`${pkg}@${version} became visible after a failed publish; continuing`)
+                }
+
+                return Effect.logError(
+                  [
+                    `Failed to publish ${pkg}@${version} from CI.`,
+                    'Snapshot publishing must authenticate through npm trusted publishing from .github/workflows/release.yml.',
+                    'Check that npm has this package configured for GitHub Actions trusted publishing and that this job uses a GitHub-hosted runner with id-token: write.',
+                  ].join(' '),
+                ).pipe(Effect.zipRight(Effect.fail(error)))
+              }),
+            )
+          }),
+        )
+        yield* Effect.log(`${dryRun === true ? 'Dry-ran' : 'Published'} ${pkg}@${version}`)
       }
-    }
-  }).pipe(Effect.ensuring(restoreGeneratedReleaseFiles(cwd)))
+
+      if (dryRun === false) {
+        yield* Effect.log('Verifying packages are available on the registry...')
+        for (const pkg of packages) {
+          yield* cmd(`npm view ${pkg}@${version} version`, { stdout: 'pipe', stderr: 'pipe' }).pipe(
+            Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
+            Effect.retry(Schedule.spaced('5 seconds').pipe(Schedule.intersect(Schedule.recurs(60)))),
+          )
+          yield* Effect.log(`Verified ${pkg}@${version}`)
+        }
+      }
+    }).pipe(Effect.ensuring(restorePackageJsonFiles(packageJsonSnapshots)))
+  })
 
 export const releasePlanCommand = Cli.Command.make(
   'plan',
