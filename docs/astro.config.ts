@@ -428,6 +428,7 @@ export default defineConfig({
   redirects: docsRedirects,
   vite: {
     resolve: {
+      tsconfigPaths: false,
       alias: {
         // Keep third-party integrations (e.g. starlight-contextual-menu) pointed at our implementation.
         // They still import `starlight-markdown` by name before aliases apply, so this mapping must exist
