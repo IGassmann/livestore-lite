@@ -105,14 +105,14 @@ After dependency updates, verify these meta-items:
 
 - [ ] `pnpm dlx expo install --check` passes for all Expo examples
 - [ ] Version constants updated appropriately
-- [ ] TypeScript build passes: `pnpm run ts:check`
-- [ ] Linting passes: `pnpm run lint:full` (run `pnpm run lint:full:fix` if needed)
+- [ ] TypeScript build passes: `pnpm exec vp run -w ts:check`
+- [ ] Linting passes: `pnpm exec vp run -w lint:full` (run `pnpm exec vp run -w lint:full:fix` if needed)
 
 ## Troubleshooting
 
 **"Command not found" errors:** Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `pnpm install` from the repository root.
 
-**Script execution issues:** Ensure TypeScript builds pass: `pnpm run ts:check`
+**Script execution issues:** Ensure TypeScript builds pass: `pnpm exec vp run -w ts:check`
 
 **Expo compatibility:** Check [Expo SDK docs](https://docs.expo.dev/versions/latest/) before updating React
 

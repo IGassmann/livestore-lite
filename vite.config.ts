@@ -18,73 +18,656 @@ const generatedInputExclusions = [
   '!examples/*/.wrangler/**',
 ]
 
+const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
+const bash = (command: string) => `/bin/bash -lc ${shellQuote(command)}`
+const repoCli = (args: string) => `WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/repo-cli.ts ${args}`
+const nodeTs = (file: string, args = '') =>
+  `WORKSPACE_ROOT=$PWD node --experimental-strip-types ${file}${args.length === 0 ? '' : ` ${args}`}`
+const runTask = (task: string) => `vp run -w ${task}`
+
+const cleanArtifacts = [
+  'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
+  'find . -name tsconfig.tsbuildinfo -delete',
+]
+
+const checkMdImports = [
+  "matches=$(grep -rl '^import ' docs/src/content/docs --include='*.md' 2>/dev/null || true)",
+  "violations=$(printf '%s\\n' \"$matches\" | grep -v '^docs/src/content/docs/api/' || true)",
+  'if [ -n "$violations" ]; then',
+  "  echo 'Error: Found .md files with import statements. These must be renamed to .mdx:' >&2",
+  '  printf "%s\\n" "$violations" | while IFS= read -r path; do [ -n "$path" ] && echo "  - $path" >&2; done',
+  '  exit 1',
+  'fi',
+].join('\n')
+
+const releaseChangesetVersion = [
+  "git ls-files '*package.json' | xargs chmod u+w",
+  'pnpm exec changeset version',
+  nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
+  nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
+  nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
+  'pnpm install --lockfile-only --no-frozen-lockfile',
+  nodeTs('scripts/src/commands/changesets.ts', 'assert-fixed-versions'),
+  nodeTs('scripts/src/commands/changesets.ts', 'write-release-plan --npm-tag "${LIVESTORE_NPM_TAG:-latest}"'),
+]
+
+const devtoolsVerify = [
+  'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+  'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+  '  : "${LIVESTORE_DEVTOOLS_METADATA:?Set both LIVESTORE_DEVTOOLS_METADATA and LIVESTORE_DEVTOOLS_TARBALL, or neither to use the checked-in manifest}"',
+  '  : "${LIVESTORE_DEVTOOLS_TARBALL:?Set both LIVESTORE_DEVTOOLS_METADATA and LIVESTORE_DEVTOOLS_TARBALL, or neither to use the checked-in manifest}"',
+  '  artifact_args=(--metadata "$LIVESTORE_DEVTOOLS_METADATA" --tarball "$LIVESTORE_DEVTOOLS_TARBALL")',
+  '  if [[ -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then artifact_args+=(--chrome-zip "$LIVESTORE_DEVTOOLS_CHROME_ZIP"); fi',
+  'fi',
+  nodeTs('scripts/src/commands/devtools-artifact.ts', 'verify "${artifact_args[@]}"'),
+].join('\n')
+
+const devtoolsRepack = (publishFlag: '--dry-run' | '--publish') =>
+  [
+    ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+    'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+    'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+    "  echo 'release:devtools-artifact repack requires LIVESTORE_DEVTOOLS_MANIFEST so release-candidate certification can bind to the selected artifact.' >&2",
+    "  echo 'Use release:devtools-artifact:verify for direct metadata/tarball integrity checks.' >&2",
+    '  exit 1',
+    'fi',
+    'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+    'if [[ -f "$certification_path" ]]; then artifact_args+=(--certification "$certification_path"); fi',
+    'if [[ "${LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK:-}" = "1" ]]; then artifact_args+=(--allow-uncertified); fi',
+    nodeTs(
+      'scripts/src/commands/devtools-artifact.ts',
+      `repack "\${artifact_args[@]}" --version "$LIVESTORE_RELEASE_VERSION" --out-dir "\${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}" ${publishFlag}`,
+    ),
+  ].join('\n')
+
+const devtoolsCertifyLiveness = [
+  ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+  'out_dir="${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}"',
+  'mkdir -p "$out_dir"',
+  'export LIVESTORE_DEVTOOLS_OUT_DIR="$out_dir"',
+  'export LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK=1',
+  runTask('release:devtools-artifact:repack-dryrun:no-install'),
+  'unset LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK',
+  'repacked_tarball="$out_dir/livestore-devtools-vite-$LIVESTORE_RELEASE_VERSION.tgz"',
+  'if [ ! -f "$repacked_tarball" ]; then echo "Expected repacked DevTools tarball not found: $repacked_tarball" >&2; exit 1; fi',
+  'playwright_bin="tests/integration/node_modules/.bin/playwright"',
+  'if [ ! -x "$playwright_bin" ]; then echo "Expected Playwright binary not found: $playwright_bin" >&2; exit 1; fi',
+  'backup_dir="$(mktemp -d)"',
+  'package_link="tests/integration/node_modules/@livestore/devtools-vite"',
+  'if [ ! -e "$package_link" ]; then echo "Expected installed @livestore/devtools-vite package link not found: $package_link" >&2; exit 1; fi',
+  'cp -a "$package_link" "$backup_dir/devtools-vite"',
+  'restore_node_modules() { rm -rf "$package_link"; cp -a "$backup_dir/devtools-vite" "$package_link"; rm -rf "$backup_dir"; }',
+  'trap restore_node_modules EXIT',
+  'unpack_dir="$(mktemp -d)"',
+  'tar -xzf "$repacked_tarball" -C "$unpack_dir"',
+  'rm -rf "$package_link"',
+  'cp -a "$unpack_dir/package" "$package_link"',
+  'rm -rf "$unpack_dir"',
+  'package_version="$(node -e "console.log(require(\'./$package_link/package.json\').version)")"',
+  'if [ "$package_version" != "$LIVESTORE_RELEASE_VERSION" ]; then echo "Expected $package_link to contain exact DevTools artifact version $LIVESTORE_RELEASE_VERSION, found $package_version" >&2; exit 1; fi',
+  '(cd tests/integration && CI=true FORCE_PLAYWRIGHT_VIA_CLI=1 PLAYWRIGHT_SUITE=devtools PLAYWRIGHT_HEADLESS="${PLAYWRIGHT_HEADLESS:-1}" LIVESTORE_DEVTOOLS_ENFORCE_LICENSE=false ./node_modules/.bin/playwright test src/tests/playwright/devtools/web.play.ts --reporter=line)',
+  'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+  'evidence="DevTools exact-artifact liveness passed for $LIVESTORE_RELEASE_VERSION"',
+  'if [[ -n "${GITHUB_SERVER_URL:-}" && -n "${GITHUB_REPOSITORY:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then evidence="$evidence in $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi',
+  nodeTs(
+    'scripts/src/commands/devtools-artifact.ts',
+    'certify --manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}" --version "$LIVESTORE_RELEASE_VERSION" --out "$certification_path" --evidence "$evidence"',
+  ),
+  'if [[ -n "${GITHUB_ENV:-}" ]]; then echo "LIVESTORE_DEVTOOLS_CERTIFICATION=$certification_path" >> "$GITHUB_ENV"; fi',
+].join('\n')
+
+const requireTestSyncProvider = [
+  'provider="${TEST_SYNC_PROVIDER:-}"',
+  'if [ -z "$provider" ]; then echo "Error: TEST_SYNC_PROVIDER is required" >&2; exit 1; fi',
+  'if [[ "$provider" == cf-* ]]; then',
+  `  if ${repoCli('test integration sync-provider')} --provider "$provider"; then exit 0; fi`,
+  '  echo "::warning::Cloudflare sync-provider tests for $provider failed (flaky; see https://github.com/livestorejs/livestore/issues/625 and upstream https://github.com/cloudflare/workers-sdk/issues/11122)"',
+  '  exit 0',
+  'fi',
+  `${repoCli('test integration sync-provider')} --provider "$provider"`,
+].join('\n')
+
+const requirePlaywrightSuite = [
+  'suite="${PLAYWRIGHT_SUITE:-}"',
+  'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
+  `if [ "$suite" = "devtools" ]; then ${repoCli('test integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
+  `${repoCli('test integration')} "$suite"`,
+].join('\n')
+
+const uploadPlaywrightTrace = [
+  'suite="${PLAYWRIGHT_SUITE:-}"',
+  'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
+  'if [ -n "${NETLIFY_AUTH_TOKEN:-}" ]; then',
+  '  pnpm dlx netlify-cli deploy --no-build --dir=tests/integration/playwright-report --site livestore-ci --filter @local/tests-integration --alias "$suite-$(git rev-parse --short HEAD)"',
+  'else',
+  "  echo 'Skipping Netlify deploy: NETLIFY_AUTH_TOKEN not set'",
+  'fi',
+].join('\n')
+
+const docsProdDiagnostics = [
+  'mkdir -p tmp/ci-docs-prod',
+  'date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs-prod/failure-timestamp.log',
+  'ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs-prod/ps-full.log || true',
+  "pgrep -af 'astro|chromium|chrome_crashpad_handler|netlify|node' > tmp/ci-docs-prod/pgrep-procs.log || true",
+  'if [ -f tmp/ci-docs-prod/deploy-state.json ]; then echo "--- deploy-state.json ---"; cat tmp/ci-docs-prod/deploy-state.json; fi',
+]
+
+const docsBuildDiagnostics = [
+  'mkdir -p tmp/ci-docs',
+  'date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs/failure-timestamp.log',
+  'ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs/ps-full.log || true',
+  "pgrep -af 'astro|chromium|chrome_crashpad_handler|node' > tmp/ci-docs/pgrep-build-procs.log || true",
+]
+
+const cacheable = {
+  untrackedEnv: commonUntrackedEnv,
+}
+
+const noOutput = {
+  output: [],
+}
+
 export default defineConfig({
   run: {
     tasks: {
-      'ci:lint': {
-        command: 'pnpm run lint:full',
-        output: [],
-        untrackedEnv: commonUntrackedEnv,
+      'build:clean': {
+        command: cleanArtifacts,
+        cache: false,
       },
-      'ci:ts:build': {
-        command: 'pnpm run ts:build',
-        input: [{ auto: true }, '!**/*.tsbuildinfo'],
-        output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        untrackedEnv: commonUntrackedEnv,
-      },
-      'ci:test:unit': {
-        command: 'pnpm run test:unit',
-        dependsOn: ['ci:ts:build'],
-        output: [],
-        untrackedEnv: [...commonUntrackedEnv, 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
-      },
-      'ci:examples:build': {
-        command: 'pnpm run examples:build:src',
-        dependsOn: ['ci:ts:build'],
-        input: [{ auto: true }, ...generatedInputExclusions],
-        untrackedEnv: commonUntrackedEnv,
-      },
-      'ci:examples:build-ready': {
+
+      'check:all': {
         command: 'true',
-        dependsOn: ['ci:examples:build'],
-        output: [],
-        untrackedEnv: commonUntrackedEnv,
+        dependsOn: ['lint:full', 'ts:check'],
+        ...noOutput,
+        ...cacheable,
       },
-      'ci:examples:deploy-build': {
-        command: 'pnpm run examples:deploy:build',
+      'check:quick': {
+        command: 'true',
+        dependsOn: ['lint', 'ts:check'],
+        ...noOutput,
+        ...cacheable,
+      },
+
+      'docs:build': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:astro'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'docs:build:api': {
+        command: repoCli('docs build --api-docs'),
         input: [{ auto: true }, ...generatedInputExclusions],
-        env: branchEnv,
-        untrackedEnv: ['CI', 'RUNNER_*'],
+        ...cacheable,
       },
-      'ci:examples:deploy-build:prod': {
-        command: 'pnpm run examples:deploy:build:prod',
+      'docs:build:diagnostics': {
+        command: docsBuildDiagnostics,
+        cache: false,
+      },
+      'docs:build:phase:astro': {
+        command: `mkdir -p tmp/ci-docs && ${repoCli('docs build --api-docs --skip-deps')}`,
+        dependsOn: ['docs:build:phase:snippets', 'docs:build:phase:diagrams'],
         input: [{ auto: true }, ...generatedInputExclusions],
-        env: branchEnv,
-        untrackedEnv: ['CI', 'RUNNER_*'],
+        ...cacheable,
       },
-      'ci:docs:snippets': {
-        command: 'pnpm run docs:build:phase:snippets',
-        dependsOn: ['ci:ts:build'],
-        input: [{ auto: true }, ...generatedInputExclusions],
-        untrackedEnv: commonUntrackedEnv,
-      },
-      'ci:docs:diagrams': {
-        command: 'pnpm run docs:build:phase:diagrams',
-        dependsOn: ['ci:ts:build'],
+      'docs:build:phase:diagrams': {
+        command: `mkdir -p tmp/ci-docs && ${repoCli('docs diagrams build')}`,
+        dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: [...commonUntrackedEnv, 'PUPPETEER_CACHE_DIR', 'PUPPETEER_EXECUTABLE_PATH'],
       },
-      'ci:docs:astro': {
-        command: 'pnpm run docs:build:phase:astro',
-        dependsOn: ['ci:docs:snippets', 'ci:docs:diagrams'],
+      'docs:build:phase:snippets': {
+        command: `mkdir -p tmp/ci-docs && ${repoCli('docs snippets build')}`,
+        dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
-        untrackedEnv: commonUntrackedEnv,
+        ...cacheable,
+      },
+      'docs:deploy': {
+        command: repoCli('docs deploy'),
+        cache: false,
+      },
+      'docs:deploy:prod': {
+        command: repoCli('docs deploy --prod --build --purge-cdn'),
+        cache: false,
+      },
+      'docs:deploy:prod:diagnostics': {
+        command: docsProdDiagnostics,
+        cache: false,
+      },
+      'docs:deploy:prod:phase:build-deploy': {
+        command: `mkdir -p tmp/ci-docs-prod && LIVESTORE_DOCS_SITE_URL="https://docs.livestore.dev" ${repoCli('docs deploy --prod --step=upload')}`,
+        cache: false,
+      },
+      'docs:deploy:prod:phase:purge': {
+        command: `mkdir -p tmp/ci-docs-prod && ${repoCli('docs deploy --prod --step=purge')}`,
+        cache: false,
+      },
+      'docs:deploy:prod:phase:verify': {
+        command: `mkdir -p tmp/ci-docs-prod && ${repoCli('docs deploy --prod --step=verify')}`,
+        cache: false,
+      },
+      'docs:dev': {
+        command: repoCli('docs dev'),
+        cache: false,
+      },
+      'docs:search:sync:prod': {
+        command:
+          ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID secret}" && pnpm --dir docs exec mxbai store sync "$MXBAI_VECTOR_STORE_ID" "./src/content/**/*.mdx" "./src/content/**/*.md" --yes --strategy fast',
+        cache: false,
+      },
+
+      'examples:build:src': {
+        command:
+          'npm_config_manage_package_manager_versions=false pnpm --dir examples --filter "livestore-example-*" --workspace-concurrency=1 build',
+        dependsOn: ['ts:build'],
+        input: [{ auto: true }, ...generatedInputExclusions],
+        ...cacheable,
+      },
+      'examples:deploy:build': {
+        command: repoCli('examples build-workers'),
+        input: [{ auto: true }, ...generatedInputExclusions],
+        env: branchEnv,
+        untrackedEnv: ['CI', 'RUNNER_*'],
+      },
+      'examples:deploy:build:prod': {
+        command: repoCli('examples build-workers --prod'),
+        input: [{ auto: true }, ...generatedInputExclusions],
+        env: branchEnv,
+        untrackedEnv: ['CI', 'RUNNER_*'],
+      },
+      'examples:deploy': {
+        command: repoCli('examples deploy'),
+        cache: false,
+      },
+      'examples:deploy:no-build': {
+        command: repoCli('examples deploy --skip-build'),
+        cache: false,
+      },
+      'examples:deploy:prod': {
+        command: repoCli('examples deploy --prod'),
+        cache: false,
+      },
+      'examples:deploy:prod:no-build': {
+        command: repoCli('examples deploy --prod --skip-build'),
+        cache: false,
+      },
+      'examples:install': {
+        command: 'npm_config_manage_package_manager_versions=false pnpm install --frozen-lockfile --dir examples',
+        cache: false,
+      },
+      'examples:test': {
+        command: repoCli('examples test'),
+        cache: false,
+      },
+      'examples:validate-links': {
+        command: repoCli('examples validate-links'),
+        cache: false,
+      },
+
+      'github:rulesets:check': {
+        command: repoCli('github rulesets check'),
+        cache: false,
+      },
+
+      lint: {
+        command: repoCli('lint'),
+        ...noOutput,
+        ...cacheable,
+      },
+      'lint:check': {
+        command: 'true',
+        dependsOn: ['lint:check:format', 'lint:check:lockfile', 'lint:check:oxlint'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'lint:check:format': {
+        command: "oxfmt --check . '!.github/workflows/*.yml'",
+        ...noOutput,
+        ...cacheable,
+      },
+      'lint:check:lockfile': {
+        command: 'pnpm install --frozen-lockfile --lockfile-only',
+        cache: false,
+      },
+      'lint:check:md-imports': {
+        command: checkMdImports,
+        ...noOutput,
+        ...cacheable,
+      },
+      'lint:check:oxlint': {
+        command: 'oxlint --import-plugin --deny-warnings',
+        ...noOutput,
+        ...cacheable,
+      },
+      'lint:fix': {
+        command: [runTask('lint:fix:format'), runTask('lint:fix:oxlint')],
+        cache: false,
+      },
+      'lint:fix:format': {
+        command: "oxfmt . '!.github/workflows/*.yml'",
+        cache: false,
+      },
+      'lint:fix:oxlint': {
+        command: 'oxlint --import-plugin --deny-warnings --fix',
+        cache: false,
+      },
+      'lint:full': {
+        command: 'true',
+        dependsOn: ['lint:check', 'lint:check:md-imports'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'lint:full:fix': {
+        command: [runTask('lint:fix'), runTask('lint:check:md-imports')],
+        cache: false,
+      },
+
+      'pnpm:clean': {
+        command: cleanArtifacts,
+        cache: false,
+      },
+      'pnpm:install': {
+        command: 'pnpm install --frozen-lockfile',
+        cache: false,
+      },
+      'pnpm:reset-lock-files': {
+        command: 'rm -f pnpm-lock.yaml examples/pnpm-lock.yaml docs/pnpm-lock.yaml',
+        cache: false,
+      },
+      'pnpm:update': {
+        command: repoCli('update-deps'),
+        cache: false,
+      },
+
+      'release:changeset:check-bodies': {
+        command: nodeTs('scripts/src/commands/changesets.ts', 'check-bodies'),
+        ...noOutput,
+        ...cacheable,
+      },
+      'release:changeset:check-pr': {
+        command: nodeTs('scripts/src/commands/changesets.ts', 'check-pr --base "${CHANGESET_BASE_REF:-origin/main}"'),
+        env: ['CHANGESET_BASE_REF'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'release:changeset:status': {
+        command: 'pnpm exec changeset status --since "${CHANGESET_BASE_REF:-origin/main}"',
+        env: ['CHANGESET_BASE_REF'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'release:changeset:verify-baseline': {
+        command: nodeTs('scripts/src/commands/changesets.ts', 'verify-baseline-changelog'),
+        ...noOutput,
+        ...cacheable,
+      },
+      'release:changeset:version': {
+        command: releaseChangesetVersion,
+        cache: false,
+      },
+      'release:devtools-artifact:certify-liveness': {
+        command: bash(devtoolsCertifyLiveness),
+        dependsOn: ['pnpm:install'],
+        cache: false,
+      },
+      'release:devtools-artifact:certify-liveness:no-install': {
+        command: bash(devtoolsCertifyLiveness),
+        cache: false,
+      },
+      'release:devtools-artifact:publish': {
+        command: bash(devtoolsRepack('--publish')),
+        dependsOn: ['pnpm:install'],
+        cache: false,
+      },
+      'release:devtools-artifact:publish:no-install': {
+        command: bash(devtoolsRepack('--publish')),
+        cache: false,
+      },
+      'release:devtools-artifact:repack-dryrun': {
+        command: bash(devtoolsRepack('--dry-run')),
+        dependsOn: ['pnpm:install'],
+        cache: false,
+      },
+      'release:devtools-artifact:repack-dryrun:no-install': {
+        command: bash(devtoolsRepack('--dry-run')),
+        cache: false,
+      },
+      'release:devtools-artifact:verify': {
+        command: bash(devtoolsVerify),
+        dependsOn: ['pnpm:install'],
+        cache: false,
+      },
+      'release:notes:extract': {
+        command: repoCli('release extract-release-notes'),
+        cache: false,
+      },
+      'release:plan': {
+        command: `: "\${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}" && ${repoCli('release plan')} --release-version "$LIVESTORE_RELEASE_VERSION" --npm-tag "\${LIVESTORE_NPM_TAG:-latest}"`,
+        cache: false,
+      },
+      'release:snapshot': {
+        command: repoCli('release snapshot'),
+        cache: false,
+      },
+      'release:snapshot:git-sha': {
+        command: `: "\${GIT_SHA:?Error: GIT_SHA is required}" && ${repoCli('release snapshot')} --git-sha="$GIT_SHA" --yes`,
+        cache: false,
+      },
+      'release:stable:dryrun': {
+        command: repoCli('release stable --dry-run --yes'),
+        cache: false,
+      },
+      'release:stable:publish': {
+        command: repoCli('release stable --yes --allow-existing'),
+        cache: false,
+      },
+
+      'setup:run': {
+        command: runTask('ts:build'),
+        dependsOn: ['pnpm:install'],
+        cache: false,
+      },
+      'setup:strict': {
+        command: runTask('ts:build'),
+        dependsOn: ['pnpm:install'],
+        cache: false,
+      },
+
+      test: {
+        command: repoCli('test'),
+        cache: false,
+      },
+      'test:integration:devtools': {
+        command: repoCli('test integration devtools'),
+        cache: false,
+      },
+      'test:integration': {
+        command: repoCli('test integration all'),
+        cache: false,
+      },
+      'test:integration:misc': {
+        command: repoCli('test integration misc'),
+        cache: false,
+      },
+      'test:integration:playwright:suite': {
+        command: bash(requirePlaywrightSuite),
+        cache: false,
+      },
+      'test:integration:playwright:upload-trace': {
+        command: uploadPlaywrightTrace,
+        cache: false,
+      },
+      'test:integration:sync-provider': {
+        command: repoCli('test integration sync-provider'),
+        cache: false,
+      },
+      'test:integration:sync-provider:cf-do-rpc-d1': {
+        command: repoCli('test integration sync-provider --provider cf-do-rpc-d1'),
+        cache: false,
+      },
+      'test:integration:sync-provider:cf-do-rpc-do': {
+        command: repoCli('test integration sync-provider --provider cf-do-rpc-do'),
+        cache: false,
+      },
+      'test:integration:sync-provider:cf-http-d1': {
+        command: repoCli('test integration sync-provider --provider cf-http-d1'),
+        cache: false,
+      },
+      'test:integration:sync-provider:cf-http-do': {
+        command: repoCli('test integration sync-provider --provider cf-http-do'),
+        cache: false,
+      },
+      'test:integration:sync-provider:cf-ws-d1': {
+        command: repoCli('test integration sync-provider --provider cf-ws-d1'),
+        cache: false,
+      },
+      'test:integration:sync-provider:cf-ws-do': {
+        command: repoCli('test integration sync-provider --provider cf-ws-do'),
+        cache: false,
+      },
+      'test:integration:sync-provider:matrix': {
+        command: bash(requireTestSyncProvider),
+        cache: false,
+      },
+      'test:integration:sync-provider:mock': {
+        command: repoCli('test integration sync-provider --provider mock'),
+        cache: false,
+      },
+      'test:integration:todomvc': {
+        command: repoCli('test integration todomvc'),
+        cache: false,
+      },
+      'test:integration:wa-sqlite': {
+        command: repoCli('test integration wa-sqlite'),
+        cache: false,
+      },
+      'test:integration:wa-sqlite:build': {
+        command: 'cd packages/@livestore/wa-sqlite && nix run .#build',
+        cache: false,
+      },
+      'test:perf': {
+        command: repoCli('test perf'),
+        cache: false,
+      },
+      'test:unit': {
+        command: repoCli('test unit'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        untrackedEnv: [...commonUntrackedEnv, 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
+      },
+
+      'ts:build': {
+        command: repoCli('ts'),
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: [{ auto: true }, '!**/*.tsbuildinfo'],
+        ...cacheable,
+      },
+      'ts:build-watch': {
+        command: repoCli('ts --watch'),
+        cache: false,
+      },
+      'ts:check': {
+        command: repoCli('ts'),
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: [{ auto: true }, '!**/*.tsbuildinfo'],
+        ...cacheable,
+      },
+      'ts:check:strict': {
+        command: 'tsc --build tsconfig.dev.json',
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: [{ auto: true }, '!**/*.tsbuildinfo'],
+        ...cacheable,
+      },
+      'ts:clean': {
+        command: repoCli('ts --clean'),
+        cache: false,
+      },
+      'ts:effect-lsp': {
+        command: 'effect-tsgo --build tsconfig.dev.json',
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: [{ auto: true }, '!**/*.tsbuildinfo'],
+        ...cacheable,
+      },
+      'ts:emit': {
+        command: 'tsc --build tsconfig.dev.json --noCheck',
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: [{ auto: true }, '!**/*.tsbuildinfo'],
+        ...cacheable,
+      },
+      typecheck: {
+        command: runTask('ts:check'),
+        ...noOutput,
+        ...cacheable,
+      },
+      'update-deps': {
+        command: repoCli('update-deps'),
+        cache: false,
+      },
+
+      'ci:lint': {
+        command: 'true',
+        dependsOn: ['lint:full'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:ts:build': {
+        command: 'true',
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:test:unit': {
+        command: 'true',
+        dependsOn: ['test:unit'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:examples:build': {
+        command: 'true',
+        dependsOn: ['examples:build:src'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:examples:build-ready': {
+        command: 'true',
+        dependsOn: ['examples:build:src'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:examples:deploy-build': {
+        command: 'true',
+        dependsOn: ['examples:deploy:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:examples:deploy-build:prod': {
+        command: 'true',
+        dependsOn: ['examples:deploy:build:prod'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:docs:snippets': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:snippets'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:docs:diagrams': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:diagrams'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'ci:docs:astro': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:astro'],
+        ...noOutput,
+        ...cacheable,
       },
       'ci:docs:build': {
         command: 'true',
-        dependsOn: ['ci:docs:astro'],
-        output: [],
-        untrackedEnv: commonUntrackedEnv,
+        dependsOn: ['docs:build'],
+        ...noOutput,
+        ...cacheable,
       },
     },
   },

@@ -62,9 +62,9 @@ jobs:
           ref: main
       - uses: ./.github/actions/setup-node-pnpm
       - name: Generate release plan from Changesets
-        run: pnpm run release:changeset:version
+        run: pnpm exec vp run -w -v release:changeset:version
       - name: Extract release notes
-        run: pnpm run release:notes:extract
+        run: pnpm exec vp run -w -v release:notes:extract
       - name: Open release plan PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -184,7 +184,7 @@ jobs:
               npmTag: $npmTag
             }' > release/release-plan.json
       - name: Dry-run stable package publish
-        run: pnpm run release:stable:dryrun
+        run: pnpm exec vp run -w -v release:stable:dryrun
       - name: Read release plan
         run: |
           set -euo pipefail
@@ -200,7 +200,7 @@ jobs:
             echo "LIVESTORE_RELEASE_DEPLOY_TARGET=dev" >> "$GITHUB_ENV"
           fi
       - name: Certify DevTools artifact liveness
-        run: pnpm run release:devtools-artifact:certify-liveness:no-install
+        run: pnpm exec vp run -w -v release:devtools-artifact:certify-liveness:no-install
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -211,7 +211,7 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
       - name: Dry-run DevTools artifact repack
-        run: pnpm run release:devtools-artifact:repack-dryrun:no-install
+        run: pnpm exec vp run -w -v release:devtools-artifact:repack-dryrun:no-install
   publish-release:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.mode == 'publish-release')
     runs-on: ubuntu-24.04
@@ -261,9 +261,9 @@ jobs:
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
       - name: Publish stable package release
-        run: pnpm run release:stable:publish
+        run: pnpm exec vp run -w -v release:stable:publish
       - name: Certify DevTools artifact liveness
-        run: pnpm run release:devtools-artifact:certify-liveness:no-install
+        run: pnpm exec vp run -w -v release:devtools-artifact:certify-liveness:no-install
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -274,7 +274,7 @@ jobs:
           retention-days: 30
           if-no-files-found: ignore
       - name: Publish DevTools artifact release
-        run: pnpm run release:devtools-artifact:publish:no-install
+        run: pnpm exec vp run -w -v release:devtools-artifact:publish:no-install
       - id: docs-snippet-cache-key
         name: Compute docs snippet cache key
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
@@ -291,7 +291,7 @@ jobs:
       - name: Deploy production docs — build + deploy
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 30
-        run: pnpm run docs:deploy:prod:phase:build-deploy
+        run: pnpm exec vp run -w -v docs:deploy:prod:phase:build-deploy
       - name: Save docs snippet cache
         if: ${{ success() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
@@ -301,14 +301,14 @@ jobs:
       - name: Deploy production docs — verify
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 15
-        run: pnpm run docs:deploy:prod:phase:verify
+        run: pnpm exec vp run -w -v docs:deploy:prod:phase:verify
       - name: Deploy production docs — purge CDN
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 15
-        run: pnpm run docs:deploy:prod:phase:purge
+        run: pnpm exec vp run -w -v docs:deploy:prod:phase:purge
       - name: Collect docs deploy diagnostics on failure
         if: ${{ failure() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' }}
-        run: pnpm run docs:deploy:prod:diagnostics
+        run: pnpm exec vp run -w -v docs:deploy:prod:diagnostics
       - name: Upload docs prod deploy logs
         if: ${{ always() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' }}
         uses: actions/upload-artifact@v4
@@ -329,7 +329,7 @@ jobs:
       - name: Build production example workers
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 30
-        run: pnpm exec vp run -v ci:examples:deploy-build:prod
+        run: pnpm exec vp run -w -v ci:examples:deploy-build:prod
       - name: Save Vite Task cache for production examples
         if: ${{ success() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' }}
         uses: actions/cache/save@v6
@@ -339,11 +339,11 @@ jobs:
       - name: Deploy production examples
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 30
-        run: pnpm run examples:deploy:prod:no-build
+        run: pnpm exec vp run -w -v examples:deploy:prod:no-build
       - name: Sync production docs search
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 15
-        run: pnpm run docs:search:sync:prod
+        run: pnpm exec vp run -w -v docs:search:sync:prod
   publish-snapshot-version:
     if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.mode == 'publish-snapshot')
     runs-on: ubuntu-24.04
@@ -369,9 +369,9 @@ jobs:
             exit 1
           fi
       - name: Publish snapshot version
-        run: pnpm run release:snapshot:git-sha
+        run: pnpm exec vp run -w -v release:snapshot:git-sha
       - name: Publish DevTools artifact snapshot
-        run: pnpm run release:devtools-artifact:publish
+        run: pnpm exec vp run -w -v release:devtools-artifact:publish
       - name: Upload DevTools Chrome snapshot artifact
         uses: actions/upload-artifact@v4
         with:

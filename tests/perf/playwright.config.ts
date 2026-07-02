@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const isVSCode = process.env.VSCODE_PID !== undefined
 if (process.env.FORCE_PLAYWRIGHT_VIA_CLI !== '1' && isVSCode === false) {
-  throw new Error(`Playwright tests must be run via 'pnpm run test:perf'.`)
+  throw new Error(`Playwright tests must be run via 'pnpm exec vp run -w test:perf'.`)
 }
 
 /**

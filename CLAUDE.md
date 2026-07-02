@@ -8,21 +8,21 @@ This repository uses Node 24 and pnpm 11 for local development. Run `corepack en
 
 - For dependency management see ./contributor-docs/dependency-management.md
 
-### Package scripts
+### Vite+ tasks
 
-Use `pnpm run <task>` for common workflows:
+Use `pnpm exec vp run -w <task>` for common workflows:
 
-- `pnpm run lint:full` / `pnpm run lint:full:fix` to run the linting checks
-- `pnpm run test:unit`, `pnpm run test:integration`, or `pnpm run test:perf` to run the tests
+- `pnpm exec vp run -w lint:full` / `pnpm exec vp run -w lint:full:fix` to run the linting checks
+- `pnpm exec vp run -w test:unit`, `pnpm exec vp run -w test:integration`, or `pnpm exec vp run -w test:perf` to run the tests
   - Some tests can take a while to run.
-- `pnpm run ts:check` to check the TypeScript build
-- `pnpm run docs:dev` / `pnpm run docs:build` for common docs workflows
-- `pnpm run examples:test` for example tests
+- `pnpm exec vp run -w ts:check` to check the TypeScript build
+- `pnpm exec vp run -w docs:dev` / `pnpm exec vp run -w docs:build` for common docs workflows
+- `pnpm exec vp run -w examples:test` for example tests
 - ... and more
 
 ## Testing
 
-- When working on specific Vitest tests, use the `vitest` CLI directly instead of broader package scripts and make sure to target the specific test file and test name: e.g. `vitest run packages/@livestore/common/src/index.test.ts --testNamePattern "should be able to get the number of users"`.
+- When working on specific Vitest tests, use the `vitest` CLI directly instead of broader Vite+ tasks and make sure to target the specific test file and test name: e.g. `vitest run packages/@livestore/common/src/index.test.ts --testNamePattern "should be able to get the number of users"`.
 
 ## TypeScript
 
@@ -42,7 +42,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ## Git
 
 - The default branch of this repository is `main`.
-- Before committing, run `pnpm run lint:full:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
+- Before committing, run `pnpm exec vp run -w lint:full:fix` to auto-fix most linting errors. Make sure there are no type check/lint errors.
 
 ### Branch Naming Conventions
 
@@ -52,9 +52,9 @@ Use GitHub issues or an issue checklist for non-trivial work.
 
 ### Development Workflow
 
-- Run the full test suite before pushing: `pnpm run test`
-- Ensure TypeScript compilation passes: `pnpm run ts:check`
-- Use `pnpm run lint:full:fix` to automatically fix formatting issues
+- Run the full test suite before pushing: `pnpm exec vp run -w test`
+- Ensure TypeScript compilation passes: `pnpm exec vp run -w ts:check`
+- Use `pnpm exec vp run -w lint:full:fix` to automatically fix formatting issues
 
 ### Issues
 

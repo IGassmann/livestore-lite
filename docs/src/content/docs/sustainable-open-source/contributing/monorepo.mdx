@@ -36,7 +36,7 @@ corepack prepare pnpm@11.3.0 --activate
 Some package-specific build infrastructure may still use its own tooling. For
 example, the wa-sqlite package keeps its package-local Nix flake until a
 validated non-Nix build path exists. The general repository task interface is
-still `pnpm run <task>`.
+`pnpm exec vp run -w <task>`.
 
 ## Initial setup
 
@@ -48,8 +48,8 @@ corepack prepare pnpm@11.3.0 --activate
 pnpm install
 ```
 
-Use `pnpm run` to list available package scripts, and run repository tasks with
-`pnpm run <task>`.
+Use `pnpm exec vp run -w` to open the interactive task picker, and run repository
+tasks with `pnpm exec vp run -w <task>`.
 
 ## General notes
 
@@ -82,31 +82,30 @@ them.
 
 ### Common commands
 
-Run common workflows through package scripts from the repository root:
+Run common workflows through Vite+ tasks from the repository root:
 
-- `pnpm run ts:check` — build/check TypeScript across the monorepo
-- `pnpm run lint:full` / `pnpm run lint:full:fix` — run or auto-fix lint + format checks
-- `pnpm run test:unit` / `pnpm run test:integration` / `pnpm run test:perf` — run test suites
-- `pnpm run docs:dev` / `pnpm run docs:build` — common docs workflows
-- `pnpm run examples:test` — example validation
-- `pnpm run release:changeset:status` — inspect release status
-- `pnpm run task -- --help` — list task shims
+- `pnpm exec vp run -w ts:check` — build/check TypeScript across the monorepo
+- `pnpm exec vp run -w lint:full` / `pnpm exec vp run -w lint:full:fix` — run or auto-fix lint + format checks
+- `pnpm exec vp run -w test:unit` / `pnpm exec vp run -w test:integration` / `pnpm exec vp run -w test:perf` — run test suites
+- `pnpm exec vp run -w docs:dev` / `pnpm exec vp run -w docs:build` — common docs workflows
+- `pnpm exec vp run -w examples:test` — example validation
+- `pnpm exec vp run -w release:changeset:status` — inspect release status
+- `pnpm exec vp run -w` — open the interactive task picker
 
-Most package scripts delegate to a small repo CLI or to task shims in
-`scripts/src/task-shims.ts`. Use `pnpm run <task-name>` for task-style
-workflows.
+Root task definitions live in `vite.config.ts`. Use
+`pnpm exec vp run -w <task-name>` for task-style workflows.
 
 Release workflows are documented in
 [`contributor-docs/release-workflows.md`](https://github.com/livestorejs/livestore/blob/main/contributor-docs/release-workflows.md).
 
 ## Tasks to run before committing
 
-A `pre-commit` hook runs `pnpm run check:quick` automatically, but you should
+A `pre-commit` hook runs `pnpm exec vp run -w check:quick` automatically, but you should
 also run the following manually for a tighter feedback loop:
 
-- `pnpm run lint:full:fix` — auto-fix lint + format issues
-- `pnpm run ts:check` — ensure TypeScript passes
-- `pnpm run test:unit` (and relevant integration suites) — run tests
+- `pnpm exec vp run -w lint:full:fix` — auto-fix lint + format issues
+- `pnpm exec vp run -w ts:check` — ensure TypeScript passes
+- `pnpm exec vp run -w test:unit` (and relevant integration suites) — run tests
 
 ## Examples
 

@@ -27,7 +27,7 @@ export const exportMarkdownCommand = Cli.Command.make(
       workspaceRootOption._tag === 'Some'
         ? workspaceRootOption.value
         : (process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run docs export commands through package scripts`))
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run docs export commands through Vite+ tasks`))
     const docsRoot = path.join(workspaceRoot, 'docs')
     const contentRoot = path.join(docsRoot, 'src', 'content', 'docs')
     const outputDir =
@@ -454,7 +454,7 @@ const assertSnippetManifest = (docsRoot: string) =>
       }
     }
     return yield* new SnippetManifestMissing({
-      message: 'Snippet manifest not found. Run "pnpm run docs:build:phase:snippets" first.',
+      message: 'Snippet manifest not found. Run "pnpm exec vp run -w docs:build:phase:snippets" first.',
       checked: candidates,
     })
   })

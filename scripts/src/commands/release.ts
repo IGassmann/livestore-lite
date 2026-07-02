@@ -570,7 +570,7 @@ export const releasePlanCommand = Cli.Command.make(
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
         process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
       ),
     ),
   },
@@ -594,7 +594,7 @@ export const releaseStableCommand = Cli.Command.make(
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
         process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
       ),
     ),
     tscBin: Cli.Options.text('tsc-bin').pipe(Cli.Options.optional),
@@ -652,7 +652,7 @@ export const releaseSnapshotCommand = Cli.Command.make(
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
         process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
       ),
     ),
     versionOption: Cli.Options.text('version').pipe(Cli.Options.optional),
@@ -712,7 +712,7 @@ export const releaseNotesExtractCommand = Cli.Command.make(
     cwd: Cli.Options.text('cwd').pipe(
       Cli.Options.withDefault(
         process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through package scripts`),
+          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
       ),
     ),
   },
