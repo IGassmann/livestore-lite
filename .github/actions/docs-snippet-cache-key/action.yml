@@ -1,0 +1,138 @@
+name: Compute docs snippet cache key
+description: Compute a cache key for pre-rendered docs Twoslash snippet artefacts.
+
+inputs:
+  render-mode:
+    description: Snippet support-file render mode represented by this cache.
+    required: false
+    default: twoslash
+
+outputs:
+  key:
+    description: Full cache key.
+    value: ${{ steps.compute.outputs.key }}
+  restore-key:
+    description: Prefix used for fallback cache restores.
+    value: ${{ steps.compute.outputs.restore-key }}
+
+runs:
+  using: composite
+  steps:
+    - id: compute
+      shell: bash
+      env:
+        RUNNER_ARCH_VALUE: ${{ runner.arch }}
+        RUNNER_OS_VALUE: ${{ runner.os }}
+        SNIPPET_RENDER_MODE: ${{ inputs.render-mode }}
+      run: |
+        node <<'NODE'
+        const crypto = require('node:crypto')
+        const fs = require('node:fs')
+        const path = require('node:path')
+
+        const root = process.cwd()
+        const hash = crypto.createHash('sha256')
+        const renderMode = process.env.SNIPPET_RENDER_MODE || 'twoslash'
+        const runnerOs = process.env.RUNNER_OS_VALUE || process.platform
+        const runnerArch = process.env.RUNNER_ARCH_VALUE || process.arch
+
+        const toPosix = (value) => value.split(path.sep).join('/')
+        const updateText = (label, value) => {
+          hash.update(`${label}\0${value}\0`)
+        }
+
+        const updateFile = (relativePath) => {
+          const absolutePath = path.join(root, relativePath)
+          if (fs.existsSync(absolutePath) === false || fs.statSync(absolutePath).isFile() === false) {
+            return
+          }
+          updateText('file', toPosix(relativePath))
+          hash.update(fs.readFileSync(absolutePath))
+          hash.update('\0')
+        }
+
+        const collectFiles = (relativeDirectory) => {
+          const absoluteDirectory = path.join(root, relativeDirectory)
+          if (fs.existsSync(absoluteDirectory) === false) return []
+
+          const output = []
+          const walk = (directory) => {
+            for (const name of fs.readdirSync(directory).sort()) {
+              if (name === '.git' || name === 'node_modules' || name === '.cache' || name === 'dist') {
+                continue
+              }
+
+              const absolutePath = path.join(directory, name)
+              const stat = fs.statSync(absolutePath)
+              if (stat.isDirectory()) {
+                walk(absolutePath)
+              } else if (stat.isFile()) {
+                output.push(toPosix(path.relative(root, absolutePath)))
+              }
+            }
+          }
+
+          walk(absoluteDirectory)
+          return output.sort()
+        }
+
+        const supportedDocExtensions = new Set(['.astro', '.md', '.mdx', '.ts', '.mts', '.tsx', '.js', '.mjs', '.jsx'])
+        const snippetImportRegex = /['"]([^'"\n]+\?snippet[^'"]*)['"]/g
+        const collectSnippetImportRecords = () => {
+          const records = []
+          for (const relativePath of collectFiles('docs/src')) {
+            if (supportedDocExtensions.has(path.extname(relativePath)) === false) continue
+
+            const source = fs.readFileSync(path.join(root, relativePath), 'utf8')
+            const specifiers = []
+            let match = snippetImportRegex.exec(source)
+            while (match !== null) {
+              if (typeof match[1] === 'string') {
+                specifiers.push(match[1])
+              }
+              match = snippetImportRegex.exec(source)
+            }
+            snippetImportRegex.lastIndex = 0
+
+            if (specifiers.length > 0) {
+              records.push(`${relativePath}\0${specifiers.sort().join('\0')}`)
+            }
+          }
+          return records.sort()
+        }
+
+        updateText('render-mode', renderMode)
+        updateText('node-version', '24')
+        updateText('pnpm-version', '11.3.0')
+
+        for (const file of [
+          'package.json',
+          'pnpm-lock.yaml',
+          'docs/package.json',
+          'docs/astro.config.mjs',
+          'docs/src/content/_assets/code/package.json',
+          'docs/src/content/_assets/code/tsconfig.json',
+          'packages/@local/astro-twoslash-code/package.json',
+          'packages/@local/astro-twoslash-code/tsconfig.json',
+        ]) {
+          updateFile(file)
+        }
+
+        for (const file of collectFiles('packages/@local/astro-twoslash-code/src')) {
+          updateFile(file)
+        }
+
+        for (const file of collectFiles('docs/src/content/_assets/code')) {
+          updateFile(file)
+        }
+
+        for (const record of collectSnippetImportRecords()) {
+          updateText('snippet-imports', record)
+        }
+
+        const digest = hash.digest('hex')
+        const restoreKey = `docs-snippets-${runnerOs}-${runnerArch}-${renderMode}-`
+        const key = `${restoreKey}${digest}`
+
+        fs.appendFileSync(process.env.GITHUB_OUTPUT, `key=${key}\nrestore-key=${restoreKey}\n`)
+        NODE
