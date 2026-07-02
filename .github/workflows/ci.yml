@@ -65,6 +65,7 @@ jobs:
         run: pnpm run test:unit
   test-integration-sync-provider:
     strategy:
+      fail-fast: false
       matrix:
         provider:
           - mock
@@ -82,7 +83,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
       - name: Install Nix for wa-sqlite build
-        uses: DeterminateSystems/determinate-nix-action@v3
+        uses: DeterminateSystems/nix-installer-action@a7ad9c4f0c65208097f4d34f3cfa1913b80cce5c
         with:
           extra-conf: |
             experimental-features = nix-command flakes
@@ -100,6 +101,8 @@ jobs:
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
       - name: 'Run sync-provider tests for ${{ matrix.provider }}'
+        env:
+          TEST_SYNC_PROVIDER: ${{ matrix.provider }}
         run: pnpm run test:integration:sync-provider:matrix
   test-integration-playwright:
     strategy:
@@ -174,7 +177,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-node-pnpm
       - name: Install Nix for wa-sqlite build
-        uses: DeterminateSystems/determinate-nix-action@v3
+        uses: DeterminateSystems/nix-installer-action@a7ad9c4f0c65208097f4d34f3cfa1913b80cce5c
         with:
           extra-conf: |
             experimental-features = nix-command flakes
