@@ -106,7 +106,7 @@ After dependency updates, verify these meta-items:
 - [ ] `pnpm dlx expo install --check` passes for all Expo examples
 - [ ] Version constants updated appropriately
 - [ ] TypeScript build passes: `pnpm exec vp run -w ts:check`
-- [ ] Linting passes: `pnpm exec vp run -w lint:full` (run `pnpm exec vp run -w lint:full:fix` if needed)
+- [ ] Static checks pass: `pnpm exec vp run -w check:all` (run `pnpm exec vp run -w check:fix` if needed)
 
 ## Troubleshooting
 
