@@ -1857,6 +1857,17 @@ export const createSnippetsCommand = ({
   )
 
   const buildHandler = Effect.withSpan('astro-twoslash-code/cli/snippets-build')(buildSnippetsInternal(resolved)).pipe(
+    Effect.tap(() =>
+      Effect.sync(() => {
+        if (process.env.GITHUB_ACTIONS !== 'true') return
+
+        // Cold Twoslash renders can leave non-user-facing handles alive after
+        // all snippet artifacts are written. The one-shot CI build phase must
+        // terminate here so those handles cannot keep GitHub Actions stuck.
+        console.log('Snippet build complete; exiting one-shot CI snippet process')
+        process.exit(0)
+      }),
+    ),
     Effect.asVoid,
   )
 
