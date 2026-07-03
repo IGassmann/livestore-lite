@@ -1,6 +1,6 @@
 import path from 'node:path'
 
-import { shouldNeverHappen } from '@livestore/utils'
+import { findWorkspaceRoot } from '@livestore/utils-dev/node'
 import { Effect, FileSystem, type PlatformError, Schema } from '@livestore/utils/effect'
 import { Cli } from '@livestore/utils/node'
 import { transformMultiCodeDocument } from '@local/docs/multi-code-markdown'
@@ -15,7 +15,7 @@ export const exportMarkdownCommand = Cli.Command.make(
     ),
     workspaceRoot: Cli.Options.text('workspace-root').pipe(
       Cli.Options.optional,
-      Cli.Options.withDescription('Workspace root (defaults to WORKSPACE_ROOT)'),
+      Cli.Options.withDescription('Workspace root (defaults to the discovered repo root)'),
     ),
     includeLlms: Cli.Options.boolean('include-llms').pipe(
       Cli.Options.withDefault(false),
@@ -24,10 +24,7 @@ export const exportMarkdownCommand = Cli.Command.make(
   },
   Effect.fn(function* ({ out, includeLlms, workspaceRoot: workspaceRootOption }) {
     const workspaceRoot =
-      workspaceRootOption._tag === 'Some'
-        ? workspaceRootOption.value
-        : (process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run docs export commands through Vite+ tasks`))
+      workspaceRootOption._tag === 'Some' ? workspaceRootOption.value : findWorkspaceRoot(import.meta.dirname)
     const docsRoot = path.join(workspaceRoot, 'docs')
     const contentRoot = path.join(docsRoot, 'src', 'content', 'docs')
     const outputDir =

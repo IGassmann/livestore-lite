@@ -22,9 +22,9 @@ const generatedInputExclusions = [
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 const bash = (command: string) => `/bin/bash -lc ${shellQuote(command)}`
-const repoCli = (args: string) => `WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/repo-cli.ts ${args}`
+const repoCli = (args: string) => `node --experimental-strip-types scripts/src/repo-cli.ts ${args}`
 const nodeTs = (file: string, args = '') =>
-  `WORKSPACE_ROOT=$PWD node --experimental-strip-types ${file}${args.length === 0 ? '' : ` ${args}`}`
+  `node --experimental-strip-types ${file}${args.length === 0 ? '' : ` ${args}`}`
 
 /*
 NOTE we're mapping test projects to absolute paths here to avoid cases where
@@ -47,10 +47,10 @@ const resolveProjectPath = (packageDir: string): string => {
 export default defineConfig({
   test: {
     projects: [
-      ...(fs
-      .readdirSync(path.join(import.meta.dirname, './packages/@livestore'))
-      .filter((dir) => fs.statSync(path.join(import.meta.dirname, './packages/@livestore', dir)).isDirectory())
-      .map((dir) => resolveProjectPath(path.join(import.meta.dirname, './packages/@livestore', dir)))),
+      ...fs
+        .readdirSync(path.join(import.meta.dirname, './packages/@livestore'))
+        .filter((dir) => fs.statSync(path.join(import.meta.dirname, './packages/@livestore', dir)).isDirectory())
+        .map((dir) => resolveProjectPath(path.join(import.meta.dirname, './packages/@livestore', dir))),
       // path.join(rootDir, 'tests/'),
       path.join(import.meta.dirname, 'packages/@local/astro-twoslash-code/vite.config.ts'),
       path.join(import.meta.dirname, 'packages/@local/astro-tldraw/vite.config.ts'),
@@ -304,7 +304,7 @@ export default defineConfig({
   staged: {
     '*': 'vp check --fix',
     'docs/**/*': () => [
-      `env WORKSPACE_ROOT=${process.cwd()} vp exec --filter @local/docs astro sync`,
+      'vp exec --filter @local/docs astro sync',
       'git add docs/.astro/types.d.ts docs/.astro/content.d.ts',
     ],
   },
@@ -360,7 +360,7 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:build:api': {
-        command: repoCli('docs build --api-docs'),
+        command: bash(repoCli('docs build --api-docs')),
         input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -392,11 +392,11 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:deploy': {
-        command: repoCli('docs deploy'),
+        command: bash(repoCli('docs deploy')),
         cache: false,
       },
       'docs:deploy:prod': {
-        command: repoCli('docs deploy --prod --build --purge-cdn'),
+        command: bash(repoCli('docs deploy --prod --build --purge-cdn')),
         cache: false,
       },
       'docs:deploy:prod:diagnostics': {
@@ -422,7 +422,7 @@ export default defineConfig({
         cache: false,
       },
       'docs:dev': {
-        command: repoCli('docs dev'),
+        command: bash(repoCli('docs dev')),
         cache: false,
       },
       'docs:search:sync:prod': {
@@ -437,31 +437,31 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'examples:deploy:build': {
-        command: repoCli('examples build-workers'),
+        command: bash(repoCli('examples build-workers')),
         input: [{ auto: true }, ...generatedInputExclusions],
         env: branchEnv,
         untrackedEnv: ['CI', 'RUNNER_*'],
       },
       'examples:deploy:build:prod': {
-        command: repoCli('examples build-workers --prod'),
+        command: bash(repoCli('examples build-workers --prod')),
         input: [{ auto: true }, ...generatedInputExclusions],
         env: branchEnv,
         untrackedEnv: ['CI', 'RUNNER_*'],
       },
       'examples:deploy': {
-        command: repoCli('examples deploy'),
+        command: bash(repoCli('examples deploy')),
         cache: false,
       },
       'examples:deploy:no-build': {
-        command: repoCli('examples deploy --skip-build'),
+        command: bash(repoCli('examples deploy --skip-build')),
         cache: false,
       },
       'examples:deploy:prod': {
-        command: repoCli('examples deploy --prod'),
+        command: bash(repoCli('examples deploy --prod')),
         cache: false,
       },
       'examples:deploy:prod:no-build': {
-        command: repoCli('examples deploy --prod --skip-build'),
+        command: bash(repoCli('examples deploy --prod --skip-build')),
         cache: false,
       },
       'examples:install': {
@@ -469,16 +469,16 @@ export default defineConfig({
         cache: false,
       },
       'examples:test': {
-        command: repoCli('examples test'),
+        command: bash(repoCli('examples test')),
         cache: false,
       },
       'examples:validate-links': {
-        command: repoCli('examples validate-links'),
+        command: bash(repoCli('examples validate-links')),
         cache: false,
       },
 
       'github:rulesets:check': {
-        command: repoCli('github rulesets check'),
+        command: bash(repoCli('github rulesets check')),
         cache: false,
       },
 
@@ -503,17 +503,19 @@ export default defineConfig({
         cache: false,
       },
       'deps:update': {
-        command: repoCli('update-deps'),
+        command: bash(repoCli('update-deps')),
         cache: false,
       },
 
       'release:changeset:check-bodies': {
-        command: nodeTs('scripts/src/commands/changesets.ts', 'check-bodies'),
+        command: bash(nodeTs('scripts/src/commands/changesets.ts', 'check-bodies')),
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'release:changeset:check-pr': {
-        command: nodeTs('scripts/src/commands/changesets.ts', 'check-pr --base "${CHANGESET_BASE_REF:-origin/main}"'),
+        command: bash(
+          nodeTs('scripts/src/commands/changesets.ts', 'check-pr --base "${CHANGESET_BASE_REF:-origin/main}"'),
+        ),
         env: ['CHANGESET_BASE_REF'],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
@@ -525,7 +527,7 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'release:changeset:verify-baseline': {
-        command: nodeTs('scripts/src/commands/changesets.ts', 'verify-baseline-changelog'),
+        command: bash(nodeTs('scripts/src/commands/changesets.ts', 'verify-baseline-changelog')),
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -734,7 +736,7 @@ export default defineConfig({
         cache: false,
       },
       'release:notes:extract': {
-        command: repoCli('release extract-release-notes'),
+        command: bash(repoCli('release extract-release-notes')),
         cache: false,
       },
       'release:plan': {
@@ -742,7 +744,7 @@ export default defineConfig({
         cache: false,
       },
       'release:snapshot': {
-        command: repoCli('release snapshot'),
+        command: bash(repoCli('release snapshot')),
         cache: false,
       },
       'release:snapshot:git-sha': {
@@ -750,11 +752,11 @@ export default defineConfig({
         cache: false,
       },
       'release:stable:dryrun': {
-        command: repoCli('release stable --dry-run --yes'),
+        command: bash(repoCli('release stable --dry-run --yes')),
         cache: false,
       },
       'release:stable:publish': {
-        command: repoCli('release stable --yes --allow-existing'),
+        command: bash(repoCli('release stable --yes --allow-existing')),
         cache: false,
       },
 
@@ -763,28 +765,30 @@ export default defineConfig({
         cache: false,
       },
       test: {
-        command: repoCli('test'),
+        command: bash(repoCli('test')),
         cache: false,
       },
       'test:integration:devtools': {
-        command: repoCli('test integration devtools'),
+        command: bash(repoCli('test integration devtools')),
         cache: false,
       },
       'test:integration': {
-        command: repoCli('test integration all'),
+        command: bash(repoCli('test integration all')),
         cache: false,
       },
       'test:integration:misc': {
-        command: repoCli('test integration misc'),
+        command: bash(repoCli('test integration misc')),
         cache: false,
       },
       'test:integration:playwright:suite': {
-        command: bash([
-          'suite="${PLAYWRIGHT_SUITE:-}"',
-          'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
-          `if [ "$suite" = "devtools" ]; then ${repoCli('test integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
-          `${repoCli('test integration')} "$suite"`,
-        ].join('\n')),
+        command: bash(
+          [
+            'suite="${PLAYWRIGHT_SUITE:-}"',
+            'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
+            `if [ "$suite" = "devtools" ]; then ${repoCli('test integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
+            `${repoCli('test integration')} "$suite"`,
+          ].join('\n'),
+        ),
         cache: false,
       },
       'test:integration:playwright:upload-trace': {
@@ -800,31 +804,31 @@ export default defineConfig({
         cache: false,
       },
       'test:integration:sync-provider': {
-        command: repoCli('test integration sync-provider'),
+        command: bash(repoCli('test integration sync-provider')),
         cache: false,
       },
       'test:integration:sync-provider:cf-do-rpc-d1': {
-        command: repoCli('test integration sync-provider --provider cf-do-rpc-d1'),
+        command: bash(repoCli('test integration sync-provider --provider cf-do-rpc-d1')),
         cache: false,
       },
       'test:integration:sync-provider:cf-do-rpc-do': {
-        command: repoCli('test integration sync-provider --provider cf-do-rpc-do'),
+        command: bash(repoCli('test integration sync-provider --provider cf-do-rpc-do')),
         cache: false,
       },
       'test:integration:sync-provider:cf-http-d1': {
-        command: repoCli('test integration sync-provider --provider cf-http-d1'),
+        command: bash(repoCli('test integration sync-provider --provider cf-http-d1')),
         cache: false,
       },
       'test:integration:sync-provider:cf-http-do': {
-        command: repoCli('test integration sync-provider --provider cf-http-do'),
+        command: bash(repoCli('test integration sync-provider --provider cf-http-do')),
         cache: false,
       },
       'test:integration:sync-provider:cf-ws-d1': {
-        command: repoCli('test integration sync-provider --provider cf-ws-d1'),
+        command: bash(repoCli('test integration sync-provider --provider cf-ws-d1')),
         cache: false,
       },
       'test:integration:sync-provider:cf-ws-do': {
-        command: repoCli('test integration sync-provider --provider cf-ws-do'),
+        command: bash(repoCli('test integration sync-provider --provider cf-ws-do')),
         cache: false,
       },
       'test:integration:sync-provider:matrix': {
@@ -843,15 +847,15 @@ export default defineConfig({
         cache: false,
       },
       'test:integration:sync-provider:mock': {
-        command: repoCli('test integration sync-provider --provider mock'),
+        command: bash(repoCli('test integration sync-provider --provider mock')),
         cache: false,
       },
       'test:integration:todomvc': {
-        command: repoCli('test integration todomvc'),
+        command: bash(repoCli('test integration todomvc')),
         cache: false,
       },
       'test:integration:wa-sqlite': {
-        command: repoCli('test integration wa-sqlite'),
+        command: bash(repoCli('test integration wa-sqlite')),
         cache: false,
       },
       'test:integration:wa-sqlite:build': {
@@ -859,7 +863,7 @@ export default defineConfig({
         cache: false,
       },
       'test:perf': {
-        command: repoCli('test perf'),
+        command: bash(repoCli('test perf')),
         cache: false,
       },
       'test:unit:flaky:webmesh': {
@@ -924,22 +928,22 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
       },
       'test:unit:legacy': {
-        command: repoCli('test unit'),
+        command: bash(repoCli('test unit')),
         cache: false,
       },
 
       'ts:build': {
-        command: repoCli('ts'),
+        command: bash(repoCli('ts')),
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:build-watch': {
-        command: repoCli('ts --watch'),
+        command: bash(repoCli('ts --watch')),
         cache: false,
       },
       'ts:check': {
-        command: repoCli('ts'),
+        command: bash(repoCli('ts')),
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
@@ -951,7 +955,7 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:clean': {
-        command: repoCli('ts --clean'),
+        command: bash(repoCli('ts --clean')),
         cache: false,
       },
       'ts:effect-lsp': {
@@ -964,6 +968,72 @@ export default defineConfig({
         command: 'tsc --build tsconfig.dev.json --noCheck',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+
+      'ci:check': {
+        command: 'true',
+        dependsOn: ['check:all'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:ts:build': {
+        command: 'true',
+        dependsOn: ['ts:build'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:test:unit': {
+        command: bash(repoCli('test unit')),
+        dependsOn: ['ts:build'],
+        cache: false,
+      },
+      'ci:examples:build': {
+        command: 'true',
+        dependsOn: ['examples:build'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:examples:build-ready': {
+        command: 'true',
+        dependsOn: ['examples:build'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:examples:deploy-build': {
+        command: 'true',
+        dependsOn: ['examples:deploy:build'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:examples:deploy-build:prod': {
+        command: 'true',
+        dependsOn: ['examples:deploy:build:prod'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:docs:snippets': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:snippets'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:docs:diagrams': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:diagrams'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:docs:astro': {
+        command: 'true',
+        dependsOn: ['docs:build:phase:astro'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'ci:docs:build': {
+        command: 'true',
+        dependsOn: ['docs:build'],
+        output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
     },

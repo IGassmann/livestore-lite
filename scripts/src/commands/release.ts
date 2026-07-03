@@ -1,7 +1,6 @@
 import semver from 'semver'
 
-import { shouldNeverHappen } from '@livestore/utils'
-import { CurrentWorkingDirectory, cmd, cmdText } from '@livestore/utils-dev/node'
+import { CurrentWorkingDirectory, cmd, cmdText, findWorkspaceRoot } from '@livestore/utils-dev/node'
 import { Effect, FileSystem, Schedule, Schema } from '@livestore/utils/effect'
 import { Cli } from '@livestore/utils/node'
 
@@ -40,6 +39,8 @@ type TReleasePlan = Schema.Schema.Type<typeof ReleasePlan>
 type TReleaseTopology = {
   publishablePackages: readonly { name: string; dir: string }[]
 }
+
+const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
 
 const toErrorMessage = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause))
 
@@ -567,12 +568,7 @@ export const releasePlanCommand = Cli.Command.make(
   {
     releaseVersion: Cli.Options.text('release-version'),
     npmTag: Cli.Options.text('npm-tag').pipe(Cli.Options.withDefault('latest')),
-    cwd: Cli.Options.text('cwd').pipe(
-      Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
-      ),
-    ),
+    cwd: Cli.Options.text('cwd').pipe(Cli.Options.withDefault(workspaceRoot)),
   },
   Effect.fn(function* ({ releaseVersion, npmTag, cwd }) {
     const validVersion = yield* validateReleaseVersion(releaseVersion)
@@ -591,12 +587,7 @@ export const releaseStableCommand = Cli.Command.make(
       Cli.Options.withDefault(false),
       Cli.Options.withDescription('Skip interactive confirmation prompt'),
     ),
-    cwd: Cli.Options.text('cwd').pipe(
-      Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
-      ),
-    ),
+    cwd: Cli.Options.text('cwd').pipe(Cli.Options.withDefault(workspaceRoot)),
     tscBin: Cli.Options.text('tsc-bin').pipe(Cli.Options.optional),
   },
   Effect.fn(function* ({ plan: planPath, dryRun, allowExisting, yes, cwd, tscBin: tscBinOption }) {
@@ -649,12 +640,7 @@ export const releaseSnapshotCommand = Cli.Command.make(
       Cli.Options.withDefault(false),
       Cli.Options.withDescription('Skip interactive confirmation prompt'),
     ),
-    cwd: Cli.Options.text('cwd').pipe(
-      Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
-      ),
-    ),
+    cwd: Cli.Options.text('cwd').pipe(Cli.Options.withDefault(workspaceRoot)),
     versionOption: Cli.Options.text('version').pipe(Cli.Options.optional),
     tscBin: Cli.Options.text('tsc-bin').pipe(Cli.Options.optional),
   },
@@ -709,12 +695,7 @@ export const releaseNotesExtractCommand = Cli.Command.make(
   'extract-release-notes',
   {
     plan: Cli.Options.text('plan').pipe(Cli.Options.withDefault('release/release-plan.json')),
-    cwd: Cli.Options.text('cwd').pipe(
-      Cli.Options.withDefault(
-        process.env.WORKSPACE_ROOT ??
-          shouldNeverHappen(`WORKSPACE_ROOT is not set. Run release commands through Vite+ tasks`),
-      ),
-    ),
+    cwd: Cli.Options.text('cwd').pipe(Cli.Options.withDefault(workspaceRoot)),
   },
   Effect.fn(function* ({ plan: planPath, cwd }) {
     const plan = yield* readReleasePlan(cwd, planPath)

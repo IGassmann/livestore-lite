@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 
 import { shouldNeverHappen } from '@livestore/utils'
@@ -20,15 +21,31 @@ export class CurrentWorkingDirectory extends Context.Tag('CurrentWorkingDirector
   static fromPath = (cwd: string) => Layer.succeed(CurrentWorkingDirectory, cwd)
 }
 
-/** Livestore workspace root (env required). */
+export const findWorkspaceRoot = (startDir = process.cwd()): string => {
+  let currentDir = path.resolve(startDir)
+
+  while (true) {
+    if (
+      fs.existsSync(path.join(currentDir, 'pnpm-workspace.yaml')) &&
+      fs.existsSync(path.join(currentDir, 'package.json'))
+    ) {
+      return currentDir
+    }
+
+    const parentDir = path.dirname(currentDir)
+    if (parentDir === currentDir) {
+      return shouldNeverHappen(`Could not find Livestore workspace root from ${startDir}`)
+    }
+    currentDir = parentDir
+  }
+}
+
+/** Livestore workspace root. */
 export class LivestoreWorkspace extends Context.Tag('LivestoreWorkspace')<LivestoreWorkspace, WorkspaceInfo>() {
-  /** Resolve from WORKSPACE_ROOT env. */
+  /** Resolve from the nearest parent pnpm workspace. */
   static live = Layer.effect(
     LivestoreWorkspace,
-    Effect.sync(() => {
-      const root = process.env.WORKSPACE_ROOT ?? shouldNeverHappen('WORKSPACE_ROOT is not set')
-      return root
-    }),
+    Effect.sync(() => findWorkspaceRoot()),
   )
 
   /** Provide a fixed Livestore root. */
