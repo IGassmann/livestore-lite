@@ -2,8 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { cmd, cmdText, LivestoreWorkspace } from '@livestore/utils-dev/node'
-import { Effect, Option } from '@livestore/utils/effect'
-import { Cli } from '@livestore/utils/node'
+import { Effect, Layer, Logger, LogLevel, Option } from '@livestore/utils/effect'
+import { Cli, PlatformNode } from '@livestore/utils/node'
 import * as integrationTests from '@local/tests-integration/run-tests'
 import * as syncProviderTestsPrepare from '@local/tests-sync-provider/prepare-ci'
 import {
@@ -342,3 +342,16 @@ export const testCommand = Cli.Command.make(
     yield* testPerfCommand.handler({})
   }),
 ).pipe(Cli.Command.withSubcommands([testIntegrationCommand, testUnitCommand, testPerfCommand]))
+
+if (import.meta.main === true) {
+  const cli = Cli.Command.run(testCommand, {
+    name: 'test',
+    version: '0.0.0',
+  })
+
+  cli(process.argv).pipe(
+    Effect.provide(Layer.mergeAll(PlatformNode.NodeContext.layer, LivestoreWorkspace.live)),
+    Logger.withMinimumLogLevel(LogLevel.Debug),
+    PlatformNode.NodeRuntime.runMain,
+  )
+}

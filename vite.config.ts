@@ -33,7 +33,6 @@ const stableUnitTestTaskNames = [
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 const bash = (command: string) => `/bin/bash -lc ${shellQuote(command)}`
-const repoCli = (args: string) => `node --experimental-strip-types scripts/src/repo-cli.ts ${args}`
 const nodeTs = (file: string, args = '') =>
   `node --experimental-strip-types ${file}${args.length === 0 ? '' : ` ${args}`}`
 
@@ -371,7 +370,7 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:build:api': {
-        command: bash(repoCli('docs build --api-docs')),
+        command: bash(nodeTs('scripts/src/commands/docs.ts', 'build --api-docs')),
         input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -385,29 +384,29 @@ export default defineConfig({
         cache: false,
       },
       'docs:build:phase:astro': {
-        command: `mkdir -p tmp/ci-docs && ${repoCli('docs build --api-docs --skip-deps')}`,
+        command: `mkdir -p tmp/ci-docs && ${nodeTs('scripts/src/commands/docs.ts', 'build --api-docs --skip-deps')}`,
         dependsOn: ['docs:build:phase:snippets', 'docs:build:phase:diagrams'],
         input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:build:phase:diagrams': {
-        command: `mkdir -p tmp/ci-docs && ${repoCli('docs diagrams build')}`,
+        command: `mkdir -p tmp/ci-docs && ${nodeTs('scripts/src/commands/docs.ts', 'diagrams build')}`,
         dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'PUPPETEER_CACHE_DIR', 'PUPPETEER_EXECUTABLE_PATH'],
       },
       'docs:build:phase:snippets': {
-        command: `mkdir -p tmp/ci-docs && ${repoCli('docs snippets build')}`,
+        command: `mkdir -p tmp/ci-docs && ${nodeTs('scripts/src/commands/docs.ts', 'snippets build')}`,
         dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:deploy': {
-        command: bash(repoCli('docs deploy')),
+        command: bash(nodeTs('scripts/src/commands/docs.ts', 'deploy')),
         cache: false,
       },
       'docs:deploy:prod': {
-        command: bash(repoCli('docs deploy --prod --build --purge-cdn')),
+        command: bash(nodeTs('scripts/src/commands/docs.ts', 'deploy --prod --build --purge-cdn')),
         cache: false,
       },
       'docs:deploy:prod:diagnostics': {
@@ -421,19 +420,19 @@ export default defineConfig({
         cache: false,
       },
       'docs:deploy:prod:phase:upload': {
-        command: `mkdir -p tmp/ci-docs-prod && LIVESTORE_DOCS_SITE_URL="https://docs.livestore.dev" ${repoCli('docs deploy --prod --step=upload')}`,
+        command: `mkdir -p tmp/ci-docs-prod && LIVESTORE_DOCS_SITE_URL="https://docs.livestore.dev" ${nodeTs('scripts/src/commands/docs.ts', 'deploy --prod --step=upload')}`,
         cache: false,
       },
       'docs:deploy:prod:phase:purge': {
-        command: `mkdir -p tmp/ci-docs-prod && ${repoCli('docs deploy --prod --step=purge')}`,
+        command: `mkdir -p tmp/ci-docs-prod && ${nodeTs('scripts/src/commands/docs.ts', 'deploy --prod --step=purge')}`,
         cache: false,
       },
       'docs:deploy:prod:phase:verify': {
-        command: `mkdir -p tmp/ci-docs-prod && ${repoCli('docs deploy --prod --step=verify')}`,
+        command: `mkdir -p tmp/ci-docs-prod && ${nodeTs('scripts/src/commands/docs.ts', 'deploy --prod --step=verify')}`,
         cache: false,
       },
       'docs:dev': {
-        command: bash(repoCli('docs dev')),
+        command: bash(nodeTs('scripts/src/commands/docs.ts', 'dev')),
         cache: false,
       },
       'docs:search:sync:prod': {
@@ -448,31 +447,31 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'examples:deploy:build': {
-        command: bash(repoCli('examples build-workers')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'build-workers')),
         input: [{ auto: true }, ...generatedInputExclusions],
         env: branchEnv,
         untrackedEnv: ['CI', 'RUNNER_*'],
       },
       'examples:deploy:build:prod': {
-        command: bash(repoCli('examples build-workers --prod')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'build-workers --prod')),
         input: [{ auto: true }, ...generatedInputExclusions],
         env: branchEnv,
         untrackedEnv: ['CI', 'RUNNER_*'],
       },
       'examples:deploy': {
-        command: bash(repoCli('examples deploy')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'deploy')),
         cache: false,
       },
       'examples:deploy:no-build': {
-        command: bash(repoCli('examples deploy --skip-build')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'deploy --skip-build')),
         cache: false,
       },
       'examples:deploy:prod': {
-        command: bash(repoCli('examples deploy --prod')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'deploy --prod')),
         cache: false,
       },
       'examples:deploy:prod:no-build': {
-        command: bash(repoCli('examples deploy --prod --skip-build')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'deploy --prod --skip-build')),
         cache: false,
       },
       'examples:install': {
@@ -489,12 +488,12 @@ export default defineConfig({
         cache: false,
       },
       'examples:validate-links': {
-        command: bash(repoCli('examples validate-links')),
+        command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'validate-links')),
         cache: false,
       },
 
       'github:rulesets:check': {
-        command: bash(repoCli('github rulesets check')),
+        command: bash(nodeTs('scripts/src/commands/github.ts', 'rulesets check')),
         cache: false,
       },
 
@@ -519,7 +518,7 @@ export default defineConfig({
         cache: false,
       },
       'deps:update': {
-        command: bash(repoCli('update-deps')),
+        command: bash(nodeTs('scripts/src/commands/update-deps.ts')),
         cache: false,
       },
 
@@ -752,27 +751,27 @@ export default defineConfig({
         cache: false,
       },
       'release:notes:extract': {
-        command: bash(repoCli('release extract-release-notes')),
+        command: bash(nodeTs('scripts/src/commands/release.ts', 'extract-release-notes')),
         cache: false,
       },
       'release:plan': {
-        command: `: "\${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}" && ${repoCli('release plan')} --release-version "$LIVESTORE_RELEASE_VERSION" --npm-tag "\${LIVESTORE_NPM_TAG:-latest}"`,
+        command: `: "\${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}" && ${nodeTs('scripts/src/commands/release.ts', 'plan')} --release-version "$LIVESTORE_RELEASE_VERSION" --npm-tag "\${LIVESTORE_NPM_TAG:-latest}"`,
         cache: false,
       },
       'release:snapshot': {
-        command: bash(repoCli('release snapshot')),
+        command: bash(nodeTs('scripts/src/commands/release.ts', 'snapshot')),
         cache: false,
       },
       'release:snapshot:git-sha': {
-        command: `: "\${GIT_SHA:?Error: GIT_SHA is required}" && ${repoCli('release snapshot')} --git-sha="$GIT_SHA" --yes`,
+        command: `: "\${GIT_SHA:?Error: GIT_SHA is required}" && ${nodeTs('scripts/src/commands/release.ts', 'snapshot')} --git-sha="$GIT_SHA" --yes`,
         cache: false,
       },
       'release:stable:dryrun': {
-        command: bash(repoCli('release stable --dry-run --yes')),
+        command: bash(nodeTs('scripts/src/commands/release.ts', 'stable --dry-run --yes')),
         cache: false,
       },
       'release:stable:publish': {
-        command: bash(repoCli('release stable --yes --allow-existing')),
+        command: bash(nodeTs('scripts/src/commands/release.ts', 'stable --yes --allow-existing')),
         cache: false,
       },
 
@@ -781,19 +780,19 @@ export default defineConfig({
         cache: false,
       },
       test: {
-        command: bash(repoCli('test')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts')),
         cache: false,
       },
       'test:integration:devtools': {
-        command: bash(repoCli('test integration devtools')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration devtools')),
         cache: false,
       },
       'test:integration': {
-        command: bash(repoCli('test integration all')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration all')),
         cache: false,
       },
       'test:integration:misc': {
-        command: bash(repoCli('test integration misc')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration misc')),
         cache: false,
       },
       'test:integration:playwright:suite': {
@@ -801,8 +800,8 @@ export default defineConfig({
           [
             'suite="${PLAYWRIGHT_SUITE:-}"',
             'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
-            `if [ "$suite" = "devtools" ]; then ${repoCli('test integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
-            `${repoCli('test integration')} "$suite"`,
+            `if [ "$suite" = "devtools" ]; then ${nodeTs('scripts/src/commands/test-commands.ts', 'integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
+            `${nodeTs('scripts/src/commands/test-commands.ts', 'integration')} "$suite"`,
           ].join('\n'),
         ),
         cache: false,
@@ -820,31 +819,39 @@ export default defineConfig({
         cache: false,
       },
       'test:integration:sync-provider': {
-        command: bash(repoCli('test integration sync-provider')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider')),
         cache: false,
       },
       'test:integration:sync-provider:cf-do-rpc-d1': {
-        command: bash(repoCli('test integration sync-provider --provider cf-do-rpc-d1')),
+        command: bash(
+          nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider cf-do-rpc-d1'),
+        ),
         cache: false,
       },
       'test:integration:sync-provider:cf-do-rpc-do': {
-        command: bash(repoCli('test integration sync-provider --provider cf-do-rpc-do')),
+        command: bash(
+          nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider cf-do-rpc-do'),
+        ),
         cache: false,
       },
       'test:integration:sync-provider:cf-http-d1': {
-        command: bash(repoCli('test integration sync-provider --provider cf-http-d1')),
+        command: bash(
+          nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider cf-http-d1'),
+        ),
         cache: false,
       },
       'test:integration:sync-provider:cf-http-do': {
-        command: bash(repoCli('test integration sync-provider --provider cf-http-do')),
+        command: bash(
+          nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider cf-http-do'),
+        ),
         cache: false,
       },
       'test:integration:sync-provider:cf-ws-d1': {
-        command: bash(repoCli('test integration sync-provider --provider cf-ws-d1')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider cf-ws-d1')),
         cache: false,
       },
       'test:integration:sync-provider:cf-ws-do': {
-        command: bash(repoCli('test integration sync-provider --provider cf-ws-do')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider cf-ws-do')),
         cache: false,
       },
       'test:integration:sync-provider:matrix': {
@@ -853,25 +860,25 @@ export default defineConfig({
             'provider="${TEST_SYNC_PROVIDER:-}"',
             'if [ -z "$provider" ]; then echo "Error: TEST_SYNC_PROVIDER is required" >&2; exit 1; fi',
             'if [[ "$provider" == cf-* ]]; then',
-            `  if ${repoCli('test integration sync-provider')} --provider "$provider"; then exit 0; fi`,
+            `  if ${nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider')} --provider "$provider"; then exit 0; fi`,
             '  echo "::warning::Cloudflare sync-provider tests for $provider failed (flaky; see https://github.com/livestorejs/livestore/issues/625 and upstream https://github.com/cloudflare/workers-sdk/issues/11122)"',
             '  exit 0',
             'fi',
-            `${repoCli('test integration sync-provider')} --provider "$provider"`,
+            `${nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider')} --provider "$provider"`,
           ].join('\n'),
         ),
         cache: false,
       },
       'test:integration:sync-provider:mock': {
-        command: bash(repoCli('test integration sync-provider --provider mock')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration sync-provider --provider mock')),
         cache: false,
       },
       'test:integration:todomvc': {
-        command: bash(repoCli('test integration todomvc')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration todomvc')),
         cache: false,
       },
       'test:integration:wa-sqlite': {
-        command: bash(repoCli('test integration wa-sqlite')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'integration wa-sqlite')),
         cache: false,
       },
       'test:integration:wa-sqlite:build': {
@@ -879,7 +886,7 @@ export default defineConfig({
         cache: false,
       },
       'test:perf': {
-        command: bash(repoCli('test perf')),
+        command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'perf')),
         cache: false,
       },
       'test:unit:flaky:webmesh': {

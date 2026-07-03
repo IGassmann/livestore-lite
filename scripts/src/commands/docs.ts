@@ -3,8 +3,19 @@ import fs from 'node:fs'
 import { liveStoreVersion } from '@livestore/common'
 import { shouldNeverHappen } from '@livestore/utils'
 import { cmd, cmdText, findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
-import { Duration, Effect, HttpClient, HttpClientRequest, Schedule, Schema } from '@livestore/utils/effect'
-import { Cli, getFreePort } from '@livestore/utils/node'
+import {
+  Duration,
+  Effect,
+  FetchHttpClient,
+  HttpClient,
+  HttpClientRequest,
+  Layer,
+  Logger,
+  LogLevel,
+  Schedule,
+  Schema,
+} from '@livestore/utils/effect'
+import { Cli, getFreePort, PlatformNode } from '@livestore/utils/node'
 import { buildDiagrams, watchDiagrams } from '@local/astro-tldraw'
 import { buildSnippets, createSnippetsCommand } from '@local/astro-twoslash-code'
 
@@ -1028,3 +1039,19 @@ const runPurgePhase = Effect.fn('docs.deploy.purge')(function* () {
 })
 
 export { DocsPhaseTimeoutError }
+
+if (import.meta.main === true) {
+  const cli = Cli.Command.run(docsCommand, {
+    name: 'docs',
+    version: '0.0.0',
+  })
+
+  const layer = Layer.mergeAll(PlatformNode.NodeContext.layer, FetchHttpClient.layer, LivestoreWorkspace.live)
+
+  cli(process.argv).pipe(
+    Effect.provide(layer),
+    Logger.withMinimumLogLevel(LogLevel.Debug),
+    Effect.scoped,
+    PlatformNode.NodeRuntime.runMain,
+  )
+}

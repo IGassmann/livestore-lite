@@ -1,8 +1,8 @@
 import path from 'node:path'
 
 import { cmd, cmdText, findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
-import { Effect, FileSystem, Schema } from '@livestore/utils/effect'
-import { Cli } from '@livestore/utils/node'
+import { Effect, FileSystem, Layer, Logger, LogLevel, Schema } from '@livestore/utils/effect'
+import { Cli, PlatformNode } from '@livestore/utils/node'
 
 const OWNER = 'livestorejs'
 const REPO = 'livestore'
@@ -303,3 +303,16 @@ export const githubCommand = Cli.Command.make('github').pipe(
     ),
   ]),
 )
+
+if (import.meta.main === true) {
+  const cli = Cli.Command.run(githubCommand, {
+    name: 'github',
+    version: '0.0.0',
+  })
+
+  cli(process.argv).pipe(
+    Effect.provide(Layer.mergeAll(PlatformNode.NodeContext.layer, LivestoreWorkspace.live)),
+    Logger.withMinimumLogLevel(LogLevel.Debug),
+    PlatformNode.NodeRuntime.runMain,
+  )
+}

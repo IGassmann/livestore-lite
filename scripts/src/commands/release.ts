@@ -1,8 +1,8 @@
 import semver from 'semver'
 
 import { CurrentWorkingDirectory, cmd, cmdText, findWorkspaceRoot } from '@livestore/utils-dev/node'
-import { Effect, FileSystem, Schedule, Schema } from '@livestore/utils/effect'
-import { Cli } from '@livestore/utils/node'
+import { Effect, FileSystem, Layer, Logger, LogLevel, Schedule, Schema } from '@livestore/utils/effect'
+import { Cli, PlatformNode } from '@livestore/utils/node'
 
 import { appendGithubSummaryMarkdown, formatMarkdownTable } from '../shared/misc.ts'
 
@@ -713,3 +713,16 @@ export const releaseCommand = Cli.Command.make('release').pipe(
     releaseNotesExtractCommand,
   ]),
 )
+
+if (import.meta.main === true) {
+  const cli = Cli.Command.run(releaseCommand, {
+    name: 'release',
+    version: '0.0.0',
+  })
+
+  cli(process.argv).pipe(
+    Effect.provide(Layer.mergeAll(PlatformNode.NodeContext.layer)),
+    Logger.withMinimumLogLevel(LogLevel.Debug),
+    PlatformNode.NodeRuntime.runMain,
+  )
+}

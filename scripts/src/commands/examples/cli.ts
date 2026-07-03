@@ -1,9 +1,12 @@
-import { Effect } from '@livestore/utils/effect'
-import { Cli } from '@livestore/utils/node'
+import { findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
+import { Effect, Layer, Logger, LogLevel } from '@livestore/utils/effect'
+import { Cli, PlatformNode } from '@livestore/utils/node'
 
 import { copyTodomvcSrc } from './copy-examples.ts'
 import { buildExampleWorkers, command as deployExamplesCommand } from './deploy-examples.ts'
 import { validateLinksCommand } from './validate-links.ts'
+
+const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
 
 const examplesBuildWorkersCommand = Cli.Command.make(
   'build-workers',
@@ -24,3 +27,16 @@ export const examplesCommand = Cli.Command.make('examples').pipe(
     validateLinksCommand,
   ]),
 )
+
+if (import.meta.main === true) {
+  const cli = Cli.Command.run(examplesCommand, {
+    name: 'examples',
+    version: '0.0.0',
+  })
+
+  cli(process.argv).pipe(
+    Effect.provide(Layer.mergeAll(PlatformNode.NodeContext.layer, LivestoreWorkspace.fromPath(workspaceRoot))),
+    Logger.withMinimumLogLevel(LogLevel.Debug),
+    PlatformNode.NodeRuntime.runMain,
+  )
+}
