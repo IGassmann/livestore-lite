@@ -12,6 +12,11 @@ const buildTask = {
   output: ['dist/**'],
   untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
 }
+const deployTask = {
+  command: 'wrangler deploy',
+  dependsOn: ['build:cached'],
+  cache: false,
+}
 
 export default defineConfig(async ({ command }) => {
   const livestoreDevtoolsPlugins =
@@ -33,6 +38,7 @@ export default defineConfig(async ({ command }) => {
     run: {
       tasks: {
         'build:cached': buildTask,
+        'deploy:wrangler': deployTask,
         'test:e2e': {
           command: 'playwright test',
           cache: false,

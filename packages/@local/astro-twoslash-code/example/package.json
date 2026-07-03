@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vp exec astro build",
+    "build": "vp run build:cached",
     "dev": "vp exec astro dev",
     "preview": "vp exec astro preview",
     "snippets:build": "bun run scripts/build-snippets.ts",
-    "test": "bun run snippets:build && vp exec playwright test"
+    "test": "vp run test:e2e"
   },
   "dependencies": {
     "@astrojs/starlight": "0.40.0",

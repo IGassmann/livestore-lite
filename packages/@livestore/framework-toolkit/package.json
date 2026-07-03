@@ -25,7 +25,7 @@
     }
   },
   "scripts": {
-    "build": "vp exec tsc"
+    "build": "vp run build:cached"
   },
   "dependencies": {
     "@livestore/adapter-web": "workspace:^",

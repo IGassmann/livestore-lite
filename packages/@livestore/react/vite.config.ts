@@ -1,5 +1,12 @@
 import { defineConfig } from 'vite-plus'
 
+const buildTask = {
+  command: 'tsc',
+  input: [{ auto: true }, '!dist/.tsbuildinfo'],
+  output: ['dist/**', '!dist/.tsbuildinfo'],
+  untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+}
+
 export default defineConfig({
   test: {
     name: '@livestore/react',
@@ -19,6 +26,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@livestore/wa-sqlite/dist/wa-sqlite.mjs': '@livestore/wa-sqlite/dist/wa-sqlite.node.mjs',
+    },
+  },
+  run: {
+    tasks: {
+      'build:cached': buildTask,
     },
   },
 })
