@@ -30,7 +30,7 @@
     }
   },
   "scripts": {
-    "build": "vp exec tsc",
+    "build": "vp run build:cached",
     "test": "vp test"
   },
   "dependencies": {

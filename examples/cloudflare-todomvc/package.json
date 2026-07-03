@@ -17,7 +17,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "vp exec wrangler build",
+    "build": "vp run build:cached",
     "dev": "vp exec wrangler dev",
     "wrangler:deploy": "vp exec wrangler deploy"
   },
