@@ -205,7 +205,6 @@ const unitTestConcurrency = [
 ].join('\n')
 
 const unitTestPackageTask = (packageTask: string) => `vpr ${packageTask}`
-const cachedUnitTestPackageTask = (packageTask: string) => `vpr --cache ${packageTask}`
 
 const flakyUnitTestPackageTask = (packageTask: string, warning: string) =>
   bash(
@@ -218,18 +217,6 @@ const flakyUnitTestPackageTask = (packageTask: string, warning: string) =>
       unitTestPackageTask(packageTask),
     ].join('\n'),
   )
-
-const stableUnitTestTaskNames = [
-  'test:unit:stable:common',
-  'test:unit:stable:common-cf',
-  'test:unit:stable:livestore',
-  'test:unit:stable:react',
-  'test:unit:stable:sqlite-wasm',
-  'test:unit:stable:utils',
-  'test:unit:stable:utils-dev',
-  'test:unit:stable:astro-tldraw',
-  'test:unit:stable:astro-twoslash-code',
-]
 
 export default defineConfig({
   test: {
@@ -575,7 +562,7 @@ export default defineConfig({
         command: docsProdDiagnostics,
         cache: false,
       },
-      'docs:deploy:prod:phase:build-deploy': {
+      'docs:deploy:prod:phase:upload': {
         command: `mkdir -p tmp/ci-docs-prod && LIVESTORE_DOCS_SITE_URL="https://docs.livestore.dev" ${repoCli('docs deploy --prod --step=upload')}`,
         cache: false,
       },
@@ -830,60 +817,6 @@ export default defineConfig({
         command: repoCli('test perf'),
         cache: false,
       },
-      'test:unit:stable:common': {
-        command: cachedUnitTestPackageTask('@livestore/common#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:common-cf': {
-        command: cachedUnitTestPackageTask('@livestore/common-cf#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:livestore': {
-        command: cachedUnitTestPackageTask('@livestore/livestore#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:react': {
-        command: cachedUnitTestPackageTask('@livestore/react#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:sqlite-wasm': {
-        command: cachedUnitTestPackageTask('@livestore/sqlite-wasm#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:utils': {
-        command: cachedUnitTestPackageTask('@livestore/utils#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:utils-dev': {
-        command: cachedUnitTestPackageTask('@livestore/utils-dev#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:astro-tldraw': {
-        command: cachedUnitTestPackageTask('@local/astro-tldraw#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'test:unit:stable:astro-twoslash-code': {
-        command: cachedUnitTestPackageTask('@local/astro-twoslash-code#test'),
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
       'test:unit:flaky:webmesh': {
         command: [
           'vpr -w test:unit:packages',
@@ -905,8 +838,7 @@ export default defineConfig({
         cache: false,
       },
       'test:unit:packages': {
-        command: 'true',
-        dependsOn: stableUnitTestTaskNames,
+        command: "vpr --filter './packages/**' test:unit:stable",
         ...noOutput,
         ...cacheable,
       },

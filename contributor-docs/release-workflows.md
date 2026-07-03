@@ -178,24 +178,26 @@ is doing. A background heartbeat writes `[docs-prod-heartbeat] <iso8601>
 <pgrep-output>` every 30–60 s to keep CI logs anchored to wall-clock and to
 make hangs greppable in retrospect.
 
-Under "Option A" the former `snippets`/`diagrams`/`astro`/`upload` phases collapse
-into a single `build-deploy` phase: `netlify deploy --build` runs the full
-`@netlify/build` pipeline (framework build, which auto-builds snippets/diagrams,
-plus serverless + edge bundling) and the upload in one bounded step. The build
-still spawns Chromium for mermaid, so the `timeout(1)` wrapper around this one
-phase remains the orphan-Chromium backstop.
+Under "Option A" the former manual `snippets`/`diagrams`/`astro` build phases
+remain separate from normal cacheable CI docs builds, but the production upload
+phase must still call `netlify deploy --build`. That Netlify command runs the
+full `@netlify/build` pipeline (framework build, which auto-builds
+snippets/diagrams, plus serverless + edge bundling) and the upload in one
+bounded side-effecting step. The build still spawns Chromium for mermaid, so the
+`timeout(1)` wrapper around this upload phase remains the orphan-Chromium
+backstop.
 
-| Phase          | Task                                  | Purpose                                                              |
-| -------------- | ------------------------------------- | -------------------------------------------------------------------- |
-| `build-deploy` | `docs:deploy:prod:phase:build-deploy` | Uploads with `netlify deploy --build` and writes `deploy-state.json` |
-| `verify`       | `docs:deploy:prod:phase:verify`       | Verifies the deployed docs and posts a job summary                   |
-| `purge`        | `docs:deploy:prod:phase:purge`        | Purges the Netlify CDN                                               |
+| Phase    | Task                            | Purpose                                                              |
+| -------- | ------------------------------- | -------------------------------------------------------------------- |
+| `upload` | `docs:deploy:prod:phase:upload` | Uploads with `netlify deploy --build` and writes `deploy-state.json` |
+| `verify` | `docs:deploy:prod:phase:verify` | Verifies the deployed docs and posts a job summary                   |
+| `purge`  | `docs:deploy:prod:phase:purge`  | Purges the Netlify CDN                                               |
 
-The `build-deploy` phase writes Netlify identifiers to `tmp/ci-docs-prod/deploy-state.json`
-so `verify` and `purge` can run as independent processes (and independent Actions
-steps / jobs) without re-uploading the build. The state file plus per-phase logs
-are uploaded as a `docs-prod-deploy-logs-*` artifact on every run for retrospective
-debugging.
+The `upload` phase writes Netlify identifiers to `tmp/ci-docs-prod/deploy-state.json`
+so `verify` and `purge` can run as independent processes (and independent
+Actions steps / jobs) without re-uploading the deploy. The state file plus
+per-phase logs are uploaded as a `docs-prod-deploy-logs-*` artifact on every run
+for retrospective debugging.
 
 The deploy handler emits OpenTelemetry spans (`docs.deploy.upload`,
 `docs.deploy.verify.markdown-negotiation`, `netlify.deploy`, `netlify.purge-cdn`)

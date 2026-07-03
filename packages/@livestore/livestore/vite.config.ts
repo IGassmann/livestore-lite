@@ -7,6 +7,13 @@ const buildTask = {
   untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
 }
 
+const stableUnitTestTask = {
+  command: 'vp test',
+  dependsOn: ['livestore-workspace#ts:build'],
+  output: [],
+  untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+}
+
 export default defineConfig({
   test: {
     name: '@livestore/livestore',
@@ -22,6 +29,7 @@ export default defineConfig({
   run: {
     tasks: {
       'build:cached': buildTask,
+      'test:unit:stable': stableUnitTestTask,
     },
   },
 })

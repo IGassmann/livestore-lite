@@ -1,5 +1,12 @@
 import { defineConfig } from 'vite-plus'
 
+const stableUnitTestTask = {
+  command: 'vp test',
+  dependsOn: ['livestore-workspace#ts:build'],
+  output: [],
+  untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+}
+
 export default defineConfig({
   test: {
     name: '@livestore/sqlite-wasm',
@@ -15,5 +22,10 @@ export default defineConfig({
       },
     },
     server: { deps: { inline: ['@effect/vitest'] } },
+  },
+  run: {
+    tasks: {
+      'test:unit:stable': stableUnitTestTask,
+    },
   },
 })

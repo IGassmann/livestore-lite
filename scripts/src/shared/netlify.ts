@@ -237,7 +237,7 @@ export const deployToNetlify = Effect.fn('netlify.deploy')(
   // With Option A (`--build`), the timeout must cover the full pipeline: Astro
   // build (including typedoc API docs) + Netlify upload. 20 minutes is a generous
   // inner backstop while staying clearly below the shell-level `timeout(1) 25m`
-  // wrapper in the `docs:deploy:prod:phase:build-deploy` Vite+ task, which
+  // wrapper in the `docs:deploy:prod:phase:upload` Vite+ task, which
   // provides the hard PID-tree kill backstop.
   Effect.timeout(Duration.minutes(20)),
   Effect.catchTag(

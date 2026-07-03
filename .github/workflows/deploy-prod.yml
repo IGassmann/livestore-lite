@@ -50,8 +50,8 @@ jobs:
           key: ${{ steps.docs-snippet-cache-key.outputs.key }}
           restore-keys: |
             ${{ steps.docs-snippet-cache-key.outputs.restore-key }}
-      - name: Build + deploy docs to Netlify
-        run: vp run -w -v docs:deploy:prod:phase:build-deploy
+      - name: Upload docs to Netlify
+        run: vp run -w -v docs:deploy:prod:phase:upload
       - name: Save docs snippet cache
         if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6
