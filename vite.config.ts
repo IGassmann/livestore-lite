@@ -3,7 +3,6 @@ import path from 'node:path'
 
 import { defineConfig } from 'vite-plus'
 
-const commonUntrackedEnv = ['CI', 'GITHUB_*', 'RUNNER_*']
 const branchEnv = ['GITHUB_BRANCH_NAME', 'GITHUB_REF_NAME', 'GITHUB_HEAD_REF', 'GITHUB_REF']
 const generatedInputExclusions = [
   '!**/*.tsbuildinfo',
@@ -31,7 +30,6 @@ const nodeTs = (file: string, args = '') =>
 NOTE we're mapping test projects to absolute paths here to avoid cases where
 tests seem to be resolved multiple times, leading to duplicate runs.
 */
-const rootDir = import.meta.dirname
 const resolveProjectPath = (packageDir: string): string => {
   const rootConfig = path.join(packageDir, 'vite.config.ts')
   if (fs.existsSync(rootConfig)) {
@@ -46,193 +44,24 @@ const resolveProjectPath = (packageDir: string): string => {
   return packageDir
 }
 
-const rootPackages = fs
-  .readdirSync(path.join(rootDir, './packages/@livestore'))
-  .filter((dir) => fs.statSync(path.join(rootDir, './packages/@livestore', dir)).isDirectory())
-  .map((dir) => resolveProjectPath(path.join(rootDir, './packages/@livestore', dir)))
-
-const cleanArtifacts = [
-  'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
-  'find . -name tsconfig.tsbuildinfo -delete',
-]
-
-const checkMdImports = [
-  "matches=$(grep -rl '^import ' docs/src/content/docs --include='*.md' 2>/dev/null || true)",
-  "violations=$(printf '%s\\n' \"$matches\" | grep -v '^docs/src/content/docs/api/' || true)",
-  'if [ -n "$violations" ]; then',
-  "  echo 'Error: Found .md files with import statements. These must be renamed to .mdx:' >&2",
-  '  printf "%s\\n" "$violations" | while IFS= read -r path; do [ -n "$path" ] && echo "  - $path" >&2; done',
-  '  exit 1',
-  'fi',
-].join('\n')
-
-const releaseChangesetVersion = [
-  "git ls-files '*package.json' | xargs chmod u+w",
-  'vpr -w changeset:version',
-  nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
-  nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
-  nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
-  'vp install --lockfile-only --no-frozen-lockfile',
-  nodeTs('scripts/src/commands/changesets.ts', 'assert-fixed-versions'),
-  nodeTs('scripts/src/commands/changesets.ts', 'write-release-plan --npm-tag "${LIVESTORE_NPM_TAG:-latest}"'),
-]
-
-const devtoolsVerify = [
-  'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
-  'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
-  '  : "${LIVESTORE_DEVTOOLS_METADATA:?Set both LIVESTORE_DEVTOOLS_METADATA and LIVESTORE_DEVTOOLS_TARBALL, or neither to use the checked-in manifest}"',
-  '  : "${LIVESTORE_DEVTOOLS_TARBALL:?Set both LIVESTORE_DEVTOOLS_METADATA and LIVESTORE_DEVTOOLS_TARBALL, or neither to use the checked-in manifest}"',
-  '  artifact_args=(--metadata "$LIVESTORE_DEVTOOLS_METADATA" --tarball "$LIVESTORE_DEVTOOLS_TARBALL")',
-  '  if [[ -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then artifact_args+=(--chrome-zip "$LIVESTORE_DEVTOOLS_CHROME_ZIP"); fi',
-  'fi',
-  nodeTs('scripts/src/commands/devtools-artifact.ts', 'verify "${artifact_args[@]}"'),
-].join('\n')
-
-const devtoolsRepack = (publishFlag: '--dry-run' | '--publish') =>
-  [
-    ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
-    'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
-    'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
-    "  echo 'release:devtools-artifact repack requires LIVESTORE_DEVTOOLS_MANIFEST so release-candidate certification can bind to the selected artifact.' >&2",
-    "  echo 'Use release:devtools-artifact:verify for direct metadata/tarball integrity checks.' >&2",
-    '  exit 1',
-    'fi',
-    'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
-    'if [[ -f "$certification_path" ]]; then artifact_args+=(--certification "$certification_path"); fi',
-    'if [[ "${LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK:-}" = "1" ]]; then artifact_args+=(--allow-uncertified); fi',
-    nodeTs(
-      'scripts/src/commands/devtools-artifact.ts',
-      `repack "\${artifact_args[@]}" --version "$LIVESTORE_RELEASE_VERSION" --out-dir "\${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}" ${publishFlag}`,
-    ),
-  ].join('\n')
-
-const devtoolsCertifyLiveness = [
-  ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
-  'out_dir="${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}"',
-  'mkdir -p "$out_dir"',
-  'export LIVESTORE_DEVTOOLS_OUT_DIR="$out_dir"',
-  'export LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK=1',
-  'vpr -w release:devtools-artifact:repack-dryrun:no-install',
-  'unset LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK',
-  'repacked_tarball="$out_dir/livestore-devtools-vite-$LIVESTORE_RELEASE_VERSION.tgz"',
-  'if [ ! -f "$repacked_tarball" ]; then echo "Expected repacked DevTools tarball not found: $repacked_tarball" >&2; exit 1; fi',
-  'playwright_bin="tests/integration/node_modules/.bin/playwright"',
-  'if [ ! -x "$playwright_bin" ]; then echo "Expected Playwright binary not found: $playwright_bin" >&2; exit 1; fi',
-  'backup_dir="$(mktemp -d)"',
-  'package_link="tests/integration/node_modules/@livestore/devtools-vite"',
-  'if [ ! -e "$package_link" ]; then echo "Expected installed @livestore/devtools-vite package link not found: $package_link" >&2; exit 1; fi',
-  'cp -a "$package_link" "$backup_dir/devtools-vite"',
-  'restore_node_modules() { rm -rf "$package_link"; cp -a "$backup_dir/devtools-vite" "$package_link"; rm -rf "$backup_dir"; }',
-  'trap restore_node_modules EXIT',
-  'unpack_dir="$(mktemp -d)"',
-  'tar -xzf "$repacked_tarball" -C "$unpack_dir"',
-  'rm -rf "$package_link"',
-  'cp -a "$unpack_dir/package" "$package_link"',
-  'rm -rf "$unpack_dir"',
-  'package_version="$(node -e "console.log(require(\'./$package_link/package.json\').version)")"',
-  'if [ "$package_version" != "$LIVESTORE_RELEASE_VERSION" ]; then echo "Expected $package_link to contain exact DevTools artifact version $LIVESTORE_RELEASE_VERSION, found $package_version" >&2; exit 1; fi',
-  '(cd tests/integration && CI=true FORCE_PLAYWRIGHT_VIA_CLI=1 PLAYWRIGHT_SUITE=devtools PLAYWRIGHT_HEADLESS="${PLAYWRIGHT_HEADLESS:-1}" LIVESTORE_DEVTOOLS_ENFORCE_LICENSE=false ./node_modules/.bin/playwright test src/tests/playwright/devtools/web.play.ts --reporter=line)',
-  'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
-  'evidence="DevTools exact-artifact liveness passed for $LIVESTORE_RELEASE_VERSION"',
-  'if [[ -n "${GITHUB_SERVER_URL:-}" && -n "${GITHUB_REPOSITORY:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then evidence="$evidence in $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi',
-  nodeTs(
-    'scripts/src/commands/devtools-artifact.ts',
-    'certify --manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}" --version "$LIVESTORE_RELEASE_VERSION" --out "$certification_path" --evidence "$evidence"',
-  ),
-  'if [[ -n "${GITHUB_ENV:-}" ]]; then echo "LIVESTORE_DEVTOOLS_CERTIFICATION=$certification_path" >> "$GITHUB_ENV"; fi',
-].join('\n')
-
-const requireTestSyncProvider = [
-  'provider="${TEST_SYNC_PROVIDER:-}"',
-  'if [ -z "$provider" ]; then echo "Error: TEST_SYNC_PROVIDER is required" >&2; exit 1; fi',
-  'if [[ "$provider" == cf-* ]]; then',
-  `  if ${repoCli('test integration sync-provider')} --provider "$provider"; then exit 0; fi`,
-  '  echo "::warning::Cloudflare sync-provider tests for $provider failed (flaky; see https://github.com/livestorejs/livestore/issues/625 and upstream https://github.com/cloudflare/workers-sdk/issues/11122)"',
-  '  exit 0',
-  'fi',
-  `${repoCli('test integration sync-provider')} --provider "$provider"`,
-].join('\n')
-
-const requirePlaywrightSuite = [
-  'suite="${PLAYWRIGHT_SUITE:-}"',
-  'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
-  `if [ "$suite" = "devtools" ]; then ${repoCli('test integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
-  `${repoCli('test integration')} "$suite"`,
-].join('\n')
-
-const uploadPlaywrightTrace = [
-  'suite="${PLAYWRIGHT_SUITE:-}"',
-  'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
-  'if [ -n "${NETLIFY_AUTH_TOKEN:-}" ]; then',
-  '  vp dlx netlify-cli deploy --no-build --dir=tests/integration/playwright-report --site livestore-ci --filter @local/tests-integration --alias "$suite-$(git rev-parse --short HEAD)"',
-  'else',
-  "  echo 'Skipping Netlify deploy: NETLIFY_AUTH_TOKEN not set'",
-  'fi',
-].join('\n')
-
-const docsProdDiagnostics = [
-  'mkdir -p tmp/ci-docs-prod',
-  'date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs-prod/failure-timestamp.log',
-  'ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs-prod/ps-full.log || true',
-  "pgrep -af 'astro|chromium|chrome_crashpad_handler|netlify|node' > tmp/ci-docs-prod/pgrep-procs.log || true",
-  'if [ -f tmp/ci-docs-prod/deploy-state.json ]; then echo "--- deploy-state.json ---"; cat tmp/ci-docs-prod/deploy-state.json; fi',
-]
-
-const docsBuildDiagnostics = [
-  'mkdir -p tmp/ci-docs',
-  'date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs/failure-timestamp.log',
-  'ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs/ps-full.log || true',
-  "pgrep -af 'astro|chromium|chrome_crashpad_handler|node' > tmp/ci-docs/pgrep-build-procs.log || true",
-]
-
-const cacheable = {
-  untrackedEnv: commonUntrackedEnv,
-}
-
-const noOutput = {
-  output: [],
-}
-
-const unitTestConcurrency = [
-  'if [[ -n "${LIVESTORE_TEST_UNIT_CONCURRENCY:-}" ]]; then',
-  '  if [[ ! "$LIVESTORE_TEST_UNIT_CONCURRENCY" =~ ^[1-9][0-9]*$ ]]; then',
-  '    echo "LIVESTORE_TEST_UNIT_CONCURRENCY must be a positive integer, got: $LIVESTORE_TEST_UNIT_CONCURRENCY" >&2',
-  '    exit 1',
-  '  fi',
-  '  export VP_RUN_CONCURRENCY_LIMIT="$LIVESTORE_TEST_UNIT_CONCURRENCY"',
-  'fi',
-  'vpr -w test:unit:graph',
-].join('\n')
-
-const unitTestPackageTask = (packageTask: string) => `vpr ${packageTask}`
-
-const flakyUnitTestPackageTask = (packageTask: string, warning: string) =>
-  bash(
-    [
-      'if [[ "${GITHUB_ACTIONS:-}" = "true" ]]; then',
-      `  if ${unitTestPackageTask(packageTask)}; then exit 0; fi`,
-      `  echo "::warning::${warning}"`,
-      '  exit 0',
-      'fi',
-      unitTestPackageTask(packageTask),
-    ].join('\n'),
-  )
-
 export default defineConfig({
   test: {
     projects: [
-      ...rootPackages,
+      ...(fs
+      .readdirSync(path.join(import.meta.dirname, './packages/@livestore'))
+      .filter((dir) => fs.statSync(path.join(import.meta.dirname, './packages/@livestore', dir)).isDirectory())
+      .map((dir) => resolveProjectPath(path.join(import.meta.dirname, './packages/@livestore', dir)))),
       // path.join(rootDir, 'tests/'),
-      path.join(rootDir, 'packages/@local/astro-twoslash-code/vite.config.ts'),
-      path.join(rootDir, 'packages/@local/astro-tldraw/vite.config.ts'),
-      path.join(rootDir, 'tests/integration/src/tests/adapter-cloudflare/vite.config.ts'),
-      path.join(rootDir, 'tests/integration/src/tests/adapter-web/vite.config.ts'),
-      path.join(rootDir, 'tests/integration/src/tests/devtools/vite.config.ts'),
-      path.join(rootDir, 'tests/package-common/vite.config.ts'),
-      path.join(rootDir, 'tests/sync-provider/vite.config.ts'),
-      path.join(rootDir, 'tests/wa-sqlite/vite.config.ts'),
-      path.join(rootDir, 'docs/vite.config.ts'),
-      path.join(rootDir, 'scripts/vite.config.ts'),
+      path.join(import.meta.dirname, 'packages/@local/astro-twoslash-code/vite.config.ts'),
+      path.join(import.meta.dirname, 'packages/@local/astro-tldraw/vite.config.ts'),
+      path.join(import.meta.dirname, 'tests/integration/src/tests/adapter-cloudflare/vite.config.ts'),
+      path.join(import.meta.dirname, 'tests/integration/src/tests/adapter-web/vite.config.ts'),
+      path.join(import.meta.dirname, 'tests/integration/src/tests/devtools/vite.config.ts'),
+      path.join(import.meta.dirname, 'tests/package-common/vite.config.ts'),
+      path.join(import.meta.dirname, 'tests/sync-provider/vite.config.ts'),
+      path.join(import.meta.dirname, 'tests/wa-sqlite/vite.config.ts'),
+      path.join(import.meta.dirname, 'docs/vite.config.ts'),
+      path.join(import.meta.dirname, 'scripts/vite.config.ts'),
     ],
     server: { deps: { inline: ['@effect/vitest'] } },
   },
@@ -482,69 +311,85 @@ export default defineConfig({
   run: {
     tasks: {
       'build:clean': {
-        command: cleanArtifacts,
+        command: [
+          'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
+          'find . -name tsconfig.tsbuildinfo -delete',
+        ],
         cache: false,
       },
 
       'check:all': {
         command: 'true',
         dependsOn: ['check', 'ts:check', 'check:lockfile', 'check:md-imports'],
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       check: {
         command: 'vp check',
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'check:lockfile': {
         command: 'vp install --frozen-lockfile --lockfile-only',
         cache: false,
       },
       'check:md-imports': {
-        command: checkMdImports,
-        ...noOutput,
-        ...cacheable,
+        command: [
+          "matches=$(grep -rl '^import ' docs/src/content/docs --include='*.md' 2>/dev/null || true)",
+          "violations=$(printf '%s\\n' \"$matches\" | grep -v '^docs/src/content/docs/api/' || true)",
+          'if [ -n "$violations" ]; then',
+          "  echo 'Error: Found .md files with import statements. These must be renamed to .mdx:' >&2",
+          '  printf "%s\\n" "$violations" | while IFS= read -r path; do [ -n "$path" ] && echo "  - $path" >&2; done',
+          '  exit 1',
+          'fi',
+        ].join('\n'),
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'check:quick': {
         command: 'true',
         dependsOn: ['check', 'ts:check'],
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
 
       'docs:build': {
         command: 'true',
         dependsOn: ['docs:build:phase:astro'],
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:build:api': {
         command: repoCli('docs build --api-docs'),
         input: [{ auto: true }, ...generatedInputExclusions],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:build:diagnostics': {
-        command: docsBuildDiagnostics,
+        command: [
+          'mkdir -p tmp/ci-docs',
+          'date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs/failure-timestamp.log',
+          'ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs/ps-full.log || true',
+          "pgrep -af 'astro|chromium|chrome_crashpad_handler|node' > tmp/ci-docs/pgrep-build-procs.log || true",
+        ],
         cache: false,
       },
       'docs:build:phase:astro': {
         command: `mkdir -p tmp/ci-docs && ${repoCli('docs build --api-docs --skip-deps')}`,
         dependsOn: ['docs:build:phase:snippets', 'docs:build:phase:diagrams'],
         input: [{ auto: true }, ...generatedInputExclusions],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:build:phase:diagrams': {
         command: `mkdir -p tmp/ci-docs && ${repoCli('docs diagrams build')}`,
         dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
-        untrackedEnv: [...commonUntrackedEnv, 'PUPPETEER_CACHE_DIR', 'PUPPETEER_EXECUTABLE_PATH'],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'PUPPETEER_CACHE_DIR', 'PUPPETEER_EXECUTABLE_PATH'],
       },
       'docs:build:phase:snippets': {
         command: `mkdir -p tmp/ci-docs && ${repoCli('docs snippets build')}`,
         dependsOn: ['ts:build'],
         input: [{ auto: true }, ...generatedInputExclusions],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'docs:deploy': {
         command: repoCli('docs deploy'),
@@ -555,7 +400,13 @@ export default defineConfig({
         cache: false,
       },
       'docs:deploy:prod:diagnostics': {
-        command: docsProdDiagnostics,
+        command: [
+          'mkdir -p tmp/ci-docs-prod',
+          'date -u +%Y-%m-%dT%H:%M:%SZ | tee tmp/ci-docs-prod/failure-timestamp.log',
+          'ps -eo pid,ppid,etime,pcpu,pmem,comm,args > tmp/ci-docs-prod/ps-full.log || true',
+          "pgrep -af 'astro|chromium|chrome_crashpad_handler|netlify|node' > tmp/ci-docs-prod/pgrep-procs.log || true",
+          'if [ -f tmp/ci-docs-prod/deploy-state.json ]; then echo "--- deploy-state.json ---"; cat tmp/ci-docs-prod/deploy-state.json; fi',
+        ],
         cache: false,
       },
       'docs:deploy:prod:phase:upload': {
@@ -582,9 +433,8 @@ export default defineConfig({
 
       'examples:build': {
         command: 'vpr --filter "livestore-example-*" --fail-if-no-match build:cached',
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'examples:deploy:build': {
         command: repoCli('examples build-workers'),
@@ -638,7 +488,10 @@ export default defineConfig({
       },
 
       'deps:clean': {
-        command: cleanArtifacts,
+        command: [
+          'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
+          'find . -name tsconfig.tsbuildinfo -delete',
+        ],
         cache: false,
       },
       'deps:install': {
@@ -656,56 +509,228 @@ export default defineConfig({
 
       'release:changeset:check-bodies': {
         command: nodeTs('scripts/src/commands/changesets.ts', 'check-bodies'),
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'release:changeset:check-pr': {
         command: nodeTs('scripts/src/commands/changesets.ts', 'check-pr --base "${CHANGESET_BASE_REF:-origin/main}"'),
         env: ['CHANGESET_BASE_REF'],
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'release:changeset:status': {
         command: 'vpr -w changeset:status --since "${CHANGESET_BASE_REF:-origin/main}"',
         env: ['CHANGESET_BASE_REF'],
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'release:changeset:verify-baseline': {
         command: nodeTs('scripts/src/commands/changesets.ts', 'verify-baseline-changelog'),
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'release:changeset:version': {
-        command: releaseChangesetVersion,
+        command: [
+          "git ls-files '*package.json' | xargs chmod u+w",
+          'vpr -w changeset:version',
+          nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
+          nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
+          nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
+          'vp install --lockfile-only --no-frozen-lockfile',
+          nodeTs('scripts/src/commands/changesets.ts', 'assert-fixed-versions'),
+          nodeTs('scripts/src/commands/changesets.ts', 'write-release-plan --npm-tag "${LIVESTORE_NPM_TAG:-latest}"'),
+        ],
         cache: false,
       },
       'release:devtools-artifact:certify-liveness': {
-        command: ['vpr -w deps:install', bash(devtoolsCertifyLiveness)],
+        command: [
+          'vpr -w deps:install',
+          bash(
+            [
+              ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+              'out_dir="${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}"',
+              'mkdir -p "$out_dir"',
+              'export LIVESTORE_DEVTOOLS_OUT_DIR="$out_dir"',
+              'export LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK=1',
+              'vpr -w release:devtools-artifact:repack-dryrun:no-install',
+              'unset LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK',
+              'repacked_tarball="$out_dir/livestore-devtools-vite-$LIVESTORE_RELEASE_VERSION.tgz"',
+              'if [ ! -f "$repacked_tarball" ]; then echo "Expected repacked DevTools tarball not found: $repacked_tarball" >&2; exit 1; fi',
+              'playwright_bin="tests/integration/node_modules/.bin/playwright"',
+              'if [ ! -x "$playwright_bin" ]; then echo "Expected Playwright binary not found: $playwright_bin" >&2; exit 1; fi',
+              'backup_dir="$(mktemp -d)"',
+              'package_link="tests/integration/node_modules/@livestore/devtools-vite"',
+              'if [ ! -e "$package_link" ]; then echo "Expected installed @livestore/devtools-vite package link not found: $package_link" >&2; exit 1; fi',
+              'cp -a "$package_link" "$backup_dir/devtools-vite"',
+              'restore_node_modules() { rm -rf "$package_link"; cp -a "$backup_dir/devtools-vite" "$package_link"; rm -rf "$backup_dir"; }',
+              'trap restore_node_modules EXIT',
+              'unpack_dir="$(mktemp -d)"',
+              'tar -xzf "$repacked_tarball" -C "$unpack_dir"',
+              'rm -rf "$package_link"',
+              'cp -a "$unpack_dir/package" "$package_link"',
+              'rm -rf "$unpack_dir"',
+              'package_version="$(node -e "console.log(require(\'./$package_link/package.json\').version)")"',
+              'if [ "$package_version" != "$LIVESTORE_RELEASE_VERSION" ]; then echo "Expected $package_link to contain exact DevTools artifact version $LIVESTORE_RELEASE_VERSION, found $package_version" >&2; exit 1; fi',
+              '(cd tests/integration && CI=true FORCE_PLAYWRIGHT_VIA_CLI=1 PLAYWRIGHT_SUITE=devtools PLAYWRIGHT_HEADLESS="${PLAYWRIGHT_HEADLESS:-1}" LIVESTORE_DEVTOOLS_ENFORCE_LICENSE=false ./node_modules/.bin/playwright test src/tests/playwright/devtools/web.play.ts --reporter=line)',
+              'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+              'evidence="DevTools exact-artifact liveness passed for $LIVESTORE_RELEASE_VERSION"',
+              'if [[ -n "${GITHUB_SERVER_URL:-}" && -n "${GITHUB_REPOSITORY:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then evidence="$evidence in $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi',
+              nodeTs(
+                'scripts/src/commands/devtools-artifact.ts',
+                'certify --manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}" --version "$LIVESTORE_RELEASE_VERSION" --out "$certification_path" --evidence "$evidence"',
+              ),
+              'if [[ -n "${GITHUB_ENV:-}" ]]; then echo "LIVESTORE_DEVTOOLS_CERTIFICATION=$certification_path" >> "$GITHUB_ENV"; fi',
+            ].join('\n'),
+          ),
+        ],
         cache: false,
       },
       'release:devtools-artifact:certify-liveness:no-install': {
-        command: bash(devtoolsCertifyLiveness),
+        command: bash(
+          [
+            ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+            'out_dir="${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}"',
+            'mkdir -p "$out_dir"',
+            'export LIVESTORE_DEVTOOLS_OUT_DIR="$out_dir"',
+            'export LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK=1',
+            'vpr -w release:devtools-artifact:repack-dryrun:no-install',
+            'unset LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK',
+            'repacked_tarball="$out_dir/livestore-devtools-vite-$LIVESTORE_RELEASE_VERSION.tgz"',
+            'if [ ! -f "$repacked_tarball" ]; then echo "Expected repacked DevTools tarball not found: $repacked_tarball" >&2; exit 1; fi',
+            'playwright_bin="tests/integration/node_modules/.bin/playwright"',
+            'if [ ! -x "$playwright_bin" ]; then echo "Expected Playwright binary not found: $playwright_bin" >&2; exit 1; fi',
+            'backup_dir="$(mktemp -d)"',
+            'package_link="tests/integration/node_modules/@livestore/devtools-vite"',
+            'if [ ! -e "$package_link" ]; then echo "Expected installed @livestore/devtools-vite package link not found: $package_link" >&2; exit 1; fi',
+            'cp -a "$package_link" "$backup_dir/devtools-vite"',
+            'restore_node_modules() { rm -rf "$package_link"; cp -a "$backup_dir/devtools-vite" "$package_link"; rm -rf "$backup_dir"; }',
+            'trap restore_node_modules EXIT',
+            'unpack_dir="$(mktemp -d)"',
+            'tar -xzf "$repacked_tarball" -C "$unpack_dir"',
+            'rm -rf "$package_link"',
+            'cp -a "$unpack_dir/package" "$package_link"',
+            'rm -rf "$unpack_dir"',
+            'package_version="$(node -e "console.log(require(\'./$package_link/package.json\').version)")"',
+            'if [ "$package_version" != "$LIVESTORE_RELEASE_VERSION" ]; then echo "Expected $package_link to contain exact DevTools artifact version $LIVESTORE_RELEASE_VERSION, found $package_version" >&2; exit 1; fi',
+            '(cd tests/integration && CI=true FORCE_PLAYWRIGHT_VIA_CLI=1 PLAYWRIGHT_SUITE=devtools PLAYWRIGHT_HEADLESS="${PLAYWRIGHT_HEADLESS:-1}" LIVESTORE_DEVTOOLS_ENFORCE_LICENSE=false ./node_modules/.bin/playwright test src/tests/playwright/devtools/web.play.ts --reporter=line)',
+            'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+            'evidence="DevTools exact-artifact liveness passed for $LIVESTORE_RELEASE_VERSION"',
+            'if [[ -n "${GITHUB_SERVER_URL:-}" && -n "${GITHUB_REPOSITORY:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then evidence="$evidence in $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi',
+            nodeTs(
+              'scripts/src/commands/devtools-artifact.ts',
+              'certify --manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}" --version "$LIVESTORE_RELEASE_VERSION" --out "$certification_path" --evidence "$evidence"',
+            ),
+            'if [[ -n "${GITHUB_ENV:-}" ]]; then echo "LIVESTORE_DEVTOOLS_CERTIFICATION=$certification_path" >> "$GITHUB_ENV"; fi',
+          ].join('\n'),
+        ),
         cache: false,
       },
       'release:devtools-artifact:publish': {
-        command: ['vpr -w deps:install', bash(devtoolsRepack('--publish'))],
+        command: [
+          'vpr -w deps:install',
+          bash(
+            [
+              ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+              'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+              'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+              "  echo 'release:devtools-artifact repack requires LIVESTORE_DEVTOOLS_MANIFEST so release-candidate certification can bind to the selected artifact.' >&2",
+              "  echo 'Use release:devtools-artifact:verify for direct metadata/tarball integrity checks.' >&2",
+              '  exit 1',
+              'fi',
+              'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+              'if [[ -f "$certification_path" ]]; then artifact_args+=(--certification "$certification_path"); fi',
+              'if [[ "${LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK:-}" = "1" ]]; then artifact_args+=(--allow-uncertified); fi',
+              nodeTs(
+                'scripts/src/commands/devtools-artifact.ts',
+                'repack "${artifact_args[@]}" --version "$LIVESTORE_RELEASE_VERSION" --out-dir "${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}" --publish',
+              ),
+            ].join('\n'),
+          ),
+        ],
         cache: false,
       },
       'release:devtools-artifact:publish:no-install': {
-        command: bash(devtoolsRepack('--publish')),
+        command: bash(
+          [
+            ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+            'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+            'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+            "  echo 'release:devtools-artifact repack requires LIVESTORE_DEVTOOLS_MANIFEST so release-candidate certification can bind to the selected artifact.' >&2",
+            "  echo 'Use release:devtools-artifact:verify for direct metadata/tarball integrity checks.' >&2",
+            '  exit 1',
+            'fi',
+            'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+            'if [[ -f "$certification_path" ]]; then artifact_args+=(--certification "$certification_path"); fi',
+            'if [[ "${LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK:-}" = "1" ]]; then artifact_args+=(--allow-uncertified); fi',
+            nodeTs(
+              'scripts/src/commands/devtools-artifact.ts',
+              'repack "${artifact_args[@]}" --version "$LIVESTORE_RELEASE_VERSION" --out-dir "${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}" --publish',
+            ),
+          ].join('\n'),
+        ),
         cache: false,
       },
       'release:devtools-artifact:repack-dryrun': {
-        command: ['vpr -w deps:install', bash(devtoolsRepack('--dry-run'))],
+        command: [
+          'vpr -w deps:install',
+          bash(
+            [
+              ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+              'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+              'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+              "  echo 'release:devtools-artifact repack requires LIVESTORE_DEVTOOLS_MANIFEST so release-candidate certification can bind to the selected artifact.' >&2",
+              "  echo 'Use release:devtools-artifact:verify for direct metadata/tarball integrity checks.' >&2",
+              '  exit 1',
+              'fi',
+              'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+              'if [[ -f "$certification_path" ]]; then artifact_args+=(--certification "$certification_path"); fi',
+              'if [[ "${LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK:-}" = "1" ]]; then artifact_args+=(--allow-uncertified); fi',
+              nodeTs(
+                'scripts/src/commands/devtools-artifact.ts',
+                'repack "${artifact_args[@]}" --version "$LIVESTORE_RELEASE_VERSION" --out-dir "${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}" --dry-run',
+              ),
+            ].join('\n'),
+          ),
+        ],
         cache: false,
       },
       'release:devtools-artifact:repack-dryrun:no-install': {
-        command: bash(devtoolsRepack('--dry-run')),
+        command: bash(
+          [
+            ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
+            'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+            'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+            "  echo 'release:devtools-artifact repack requires LIVESTORE_DEVTOOLS_MANIFEST so release-candidate certification can bind to the selected artifact.' >&2",
+            "  echo 'Use release:devtools-artifact:verify for direct metadata/tarball integrity checks.' >&2",
+            '  exit 1',
+            'fi',
+            'certification_path="${LIVESTORE_DEVTOOLS_CERTIFICATION:-release/devtools-artifact.certification.json}"',
+            'if [[ -f "$certification_path" ]]; then artifact_args+=(--certification "$certification_path"); fi',
+            'if [[ "${LIVESTORE_DEVTOOLS_ALLOW_UNCERTIFIED_REPACK:-}" = "1" ]]; then artifact_args+=(--allow-uncertified); fi',
+            nodeTs(
+              'scripts/src/commands/devtools-artifact.ts',
+              'repack "${artifact_args[@]}" --version "$LIVESTORE_RELEASE_VERSION" --out-dir "${LIVESTORE_DEVTOOLS_OUT_DIR:-$(mktemp -d)}" --dry-run',
+            ),
+          ].join('\n'),
+        ),
         cache: false,
       },
       'release:devtools-artifact:verify': {
-        command: ['vpr -w deps:install', bash(devtoolsVerify)],
+        command: [
+          'vpr -w deps:install',
+          bash(
+            [
+              'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
+              'if [[ -n "${LIVESTORE_DEVTOOLS_METADATA:-}" || -n "${LIVESTORE_DEVTOOLS_TARBALL:-}" || -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then',
+              '  : "${LIVESTORE_DEVTOOLS_METADATA:?Set both LIVESTORE_DEVTOOLS_METADATA and LIVESTORE_DEVTOOLS_TARBALL, or neither to use the checked-in manifest}"',
+              '  : "${LIVESTORE_DEVTOOLS_TARBALL:?Set both LIVESTORE_DEVTOOLS_METADATA and LIVESTORE_DEVTOOLS_TARBALL, or neither to use the checked-in manifest}"',
+              '  artifact_args=(--metadata "$LIVESTORE_DEVTOOLS_METADATA" --tarball "$LIVESTORE_DEVTOOLS_TARBALL")',
+              '  if [[ -n "${LIVESTORE_DEVTOOLS_CHROME_ZIP:-}" ]]; then artifact_args+=(--chrome-zip "$LIVESTORE_DEVTOOLS_CHROME_ZIP"); fi',
+              'fi',
+              nodeTs('scripts/src/commands/devtools-artifact.ts', 'verify "${artifact_args[@]}"'),
+            ].join('\n'),
+          ),
+        ],
         cache: false,
       },
       'release:notes:extract': {
@@ -754,11 +779,24 @@ export default defineConfig({
         cache: false,
       },
       'test:integration:playwright:suite': {
-        command: bash(requirePlaywrightSuite),
+        command: bash([
+          'suite="${PLAYWRIGHT_SUITE:-}"',
+          'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
+          `if [ "$suite" = "devtools" ]; then ${repoCli('test integration devtools')} || echo "::warning::Script failed but continuing"; exit 0; fi`,
+          `${repoCli('test integration')} "$suite"`,
+        ].join('\n')),
         cache: false,
       },
       'test:integration:playwright:upload-trace': {
-        command: uploadPlaywrightTrace,
+        command: [
+          'suite="${PLAYWRIGHT_SUITE:-}"',
+          'if [ -z "$suite" ]; then echo "Error: PLAYWRIGHT_SUITE is required" >&2; exit 1; fi',
+          'if [ -n "${NETLIFY_AUTH_TOKEN:-}" ]; then',
+          '  vp dlx netlify-cli deploy --no-build --dir=tests/integration/playwright-report --site livestore-ci --filter @local/tests-integration --alias "$suite-$(git rev-parse --short HEAD)"',
+          'else',
+          "  echo 'Skipping Netlify deploy: NETLIFY_AUTH_TOKEN not set'",
+          'fi',
+        ].join('\n'),
         cache: false,
       },
       'test:integration:sync-provider': {
@@ -790,7 +828,18 @@ export default defineConfig({
         cache: false,
       },
       'test:integration:sync-provider:matrix': {
-        command: bash(requireTestSyncProvider),
+        command: bash(
+          [
+            'provider="${TEST_SYNC_PROVIDER:-}"',
+            'if [ -z "$provider" ]; then echo "Error: TEST_SYNC_PROVIDER is required" >&2; exit 1; fi',
+            'if [[ "$provider" == cf-* ]]; then',
+            `  if ${repoCli('test integration sync-provider')} --provider "$provider"; then exit 0; fi`,
+            '  echo "::warning::Cloudflare sync-provider tests for $provider failed (flaky; see https://github.com/livestorejs/livestore/issues/625 and upstream https://github.com/cloudflare/workers-sdk/issues/11122)"',
+            '  exit 0',
+            'fi',
+            `${repoCli('test integration sync-provider')} --provider "$provider"`,
+          ].join('\n'),
+        ),
         cache: false,
       },
       'test:integration:sync-provider:mock': {
@@ -816,9 +865,15 @@ export default defineConfig({
       'test:unit:flaky:webmesh': {
         command: [
           'vpr -w test:unit:packages',
-          flakyUnitTestPackageTask(
-            '@livestore/webmesh#test',
-            'webmesh unit tests failed (known CI-flaky suite; run locally with vpr @livestore/webmesh#test)',
+          bash(
+            [
+              'if [[ "${GITHUB_ACTIONS:-}" = "true" ]]; then',
+              '  if vpr @livestore/webmesh#test; then exit 0; fi',
+              '  echo "::warning::webmesh unit tests failed (known CI-flaky suite; run locally with vpr @livestore/webmesh#test)"',
+              '  exit 0',
+              'fi',
+              'vpr @livestore/webmesh#test',
+            ].join('\n'),
           ),
         ],
         cache: false,
@@ -826,17 +881,23 @@ export default defineConfig({
       'test:unit:flaky:package-common': {
         command: [
           'vpr -w test:unit:flaky:webmesh',
-          flakyUnitTestPackageTask(
-            '@local/tests-package-common#test',
-            'package-common unit tests failed (known CI-flaky suite; run locally with vpr @local/tests-package-common#test)',
+          bash(
+            [
+              'if [[ "${GITHUB_ACTIONS:-}" = "true" ]]; then',
+              '  if vpr @local/tests-package-common#test; then exit 0; fi',
+              '  echo "::warning::package-common unit tests failed (known CI-flaky suite; run locally with vpr @local/tests-package-common#test)"',
+              '  exit 0',
+              'fi',
+              'vpr @local/tests-package-common#test',
+            ].join('\n'),
           ),
         ],
         cache: false,
       },
       'test:unit:packages': {
         command: "vpr --filter './packages/**' test:unit:stable",
-        ...noOutput,
-        ...cacheable,
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'test:unit:flaky': {
         command: 'vpr -w test:unit:flaky:package-common',
@@ -847,9 +908,20 @@ export default defineConfig({
         cache: false,
       },
       'test:unit': {
-        command: bash(unitTestConcurrency),
-        ...noOutput,
-        untrackedEnv: [...commonUntrackedEnv, 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
+        command: bash(
+          [
+            'if [[ -n "${LIVESTORE_TEST_UNIT_CONCURRENCY:-}" ]]; then',
+            '  if [[ ! "$LIVESTORE_TEST_UNIT_CONCURRENCY" =~ ^[1-9][0-9]*$ ]]; then',
+            '    echo "LIVESTORE_TEST_UNIT_CONCURRENCY must be a positive integer, got: $LIVESTORE_TEST_UNIT_CONCURRENCY" >&2',
+            '    exit 1',
+            '  fi',
+            '  export VP_RUN_CONCURRENCY_LIMIT="$LIVESTORE_TEST_UNIT_CONCURRENCY"',
+            'fi',
+            'vpr -w test:unit:graph',
+          ].join('\n'),
+        ),
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
       },
       'test:unit:legacy': {
         command: repoCli('test unit'),
@@ -860,7 +932,7 @@ export default defineConfig({
         command: repoCli('ts'),
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:build-watch': {
         command: repoCli('ts --watch'),
@@ -870,13 +942,13 @@ export default defineConfig({
         command: repoCli('ts'),
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:check:strict': {
         command: 'tsc --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:clean': {
         command: repoCli('ts --clean'),
@@ -886,13 +958,13 @@ export default defineConfig({
         command: 'effect-tsgo --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:emit': {
         command: 'tsc --build tsconfig.dev.json --noCheck',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        ...cacheable,
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
     },
   },

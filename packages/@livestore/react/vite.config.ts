@@ -1,15 +1,8 @@
 import { defineConfig } from 'vite-plus'
 
-const buildTask = {
-  command: 'tsc',
-  input: [{ auto: true }, '!dist/.tsbuildinfo'],
-  output: ['dist/**', '!dist/.tsbuildinfo'],
-  untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-}
-
 const stableUnitTestTask = {
   command: ['vp test', 'REACT_STRICT_MODE=1 vp test'],
-  dependsOn: ['livestore-workspace#ts:build'],
+  dependsOn: ['build:cached'],
   output: [],
   untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
 }
@@ -37,7 +30,13 @@ export default defineConfig({
   },
   run: {
     tasks: {
-      'build:cached': buildTask,
+      'build:cached': {
+        command: 'tsc',
+        dependsOn: [{ task: 'build:cached', from: ['dependencies', 'devDependencies'] }],
+        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        output: ['dist/**', '!**/*.tsbuildinfo'],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
       'test:unit:stable': stableUnitTestTask,
     },
   },
