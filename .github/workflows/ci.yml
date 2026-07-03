@@ -35,7 +35,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run static checks
-        run: vp run -w -v ci:check
+        run: vp run -w -v check:all
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -74,7 +74,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run type-check
-        run: vp run -w -v ci:ts:build
+        run: vp run -w -v ts:build
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -98,7 +98,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run unit tests
-        run: vp run -w -v ci:test:unit
+        run: vp run -w -v test:unit
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
@@ -259,7 +259,7 @@ jobs:
       - name: Install examples dependencies
         run: vp run -w -v examples:install
       - name: Build examples
-        run: vp run -w -v ci:examples:build-ready
+        run: vp run -w -v examples:build
       - name: Install example Playwright browsers
         run: vp exec --filter livestore-example-web-linearlite -- playwright install --with-deps chromium
       - name: Test examples
@@ -277,7 +277,7 @@ jobs:
           fi
       - name: Build example workers for deploy
         if: ${{ github.event.pull_request.head.repo.fork != true && steps.cloudflare-deploy.outputs.enabled == 'true' }}
-        run: vp run -w -v ci:examples:deploy-build
+        run: vp run -w -v examples:deploy:build
       - id: deploy-examples
         name: Deploy examples to Cloudflare
         if: ${{ github.event.pull_request.head.repo.fork != true && steps.cloudflare-deploy.outputs.enabled == 'true' }}
@@ -343,7 +343,7 @@ jobs:
         run: vp exec --filter @local/docs -- playwright install --with-deps chromium
       - name: Build docs
         timeout-minutes: 20
-        run: vp run -w -v ci:docs:build
+        run: vp run -w -v docs:build
       - name: Save docs snippet cache
         if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6

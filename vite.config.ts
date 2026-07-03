@@ -597,7 +597,7 @@ export default defineConfig({
         cache: false,
       },
 
-      'examples:build:src': {
+      'examples:build': {
         command: 'vpr --filter "livestore-example-*" --fail-if-no-match build:cached',
         dependsOn: ['ts:build'],
         ...noOutput,
@@ -754,11 +754,6 @@ export default defineConfig({
         command: ['vpr -w deps:install', 'vpr -w hooks:install', 'vpr -w ts:build'],
         cache: false,
       },
-      'setup:strict': {
-        command: ['vpr -w deps:install', 'vpr -w hooks:install', 'vpr -w ts:build'],
-        cache: false,
-      },
-
       test: {
         command: repoCli('test'),
         cache: false,
@@ -969,82 +964,6 @@ export default defineConfig({
         command: 'tsc --build tsconfig.dev.json --noCheck',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        ...cacheable,
-      },
-      typecheck: {
-        command: 'vpr -w ts:check',
-        ...noOutput,
-        ...cacheable,
-      },
-      'update-deps': {
-        command: repoCli('update-deps'),
-        cache: false,
-      },
-
-      'ci:check': {
-        command: 'true',
-        dependsOn: ['check:all'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:ts:build': {
-        command: 'true',
-        dependsOn: ['ts:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:test:unit': {
-        command: 'true',
-        dependsOn: ['test:unit'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:examples:build': {
-        command: 'true',
-        dependsOn: ['examples:build:src'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:examples:build-ready': {
-        command: 'true',
-        dependsOn: ['examples:build:src'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:examples:deploy-build': {
-        command: 'true',
-        dependsOn: ['examples:deploy:build'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:examples:deploy-build:prod': {
-        command: 'true',
-        dependsOn: ['examples:deploy:build:prod'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:docs:snippets': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:snippets'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:docs:diagrams': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:diagrams'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:docs:astro': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:astro'],
-        ...noOutput,
-        ...cacheable,
-      },
-      'ci:docs:build': {
-        command: 'true',
-        dependsOn: ['docs:build'],
-        ...noOutput,
         ...cacheable,
       },
     },

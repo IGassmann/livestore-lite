@@ -102,7 +102,7 @@ jobs:
           # Disable in Vite (otherwise CORS issues)
           echo "VITE_OTEL_EXPORTER_OTLP_ENDPOINT=" >> $GITHUB_ENV
       - name: Build production example workers
-        run: vp run -w -v ci:examples:deploy-build:prod
+        run: vp run -w -v examples:deploy:build:prod
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6

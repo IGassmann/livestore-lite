@@ -329,7 +329,7 @@ jobs:
       - name: Build production example workers
         if: env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod'
         timeout-minutes: 30
-        run: vp run -w -v ci:examples:deploy-build:prod
+        run: vp run -w -v examples:deploy:build:prod
       - name: Save Vite Task cache for production examples
         if: ${{ success() && env.LIVESTORE_RELEASE_DEPLOY_TARGET == 'prod' }}
         uses: actions/cache/save@v6
