@@ -31,7 +31,7 @@ const fixturesRoot = fileURLToPath(new URL('./test-fixtures/catalog', import.met
 const snippetRoot = fixturesRoot
 const tsconfigPath = path.join(fixturesRoot, 'tsconfig.json')
 const packageRoot = fileURLToPath(new URL('../..', import.meta.url))
-const workspaceRoot = process.env.WORKSPACE_ROOT ?? path.resolve(packageRoot, '../../..')
+const workspaceRoot = path.resolve(packageRoot, '../../..')
 const exampleProjectRoot = path.join(packageRoot, 'example')
 let twoslasher: TTwoslasher
 type TRenderer = Parameters<typeof __internal.renderSnippet>[0]

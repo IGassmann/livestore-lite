@@ -1,11 +1,12 @@
 import path from 'node:path'
 
-import { cmd, cmdText, LivestoreWorkspace } from '@livestore/utils-dev/node'
+import { cmd, cmdText, findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
 import { Effect, FileSystem, Schema } from '@livestore/utils/effect'
 import { Cli } from '@livestore/utils/node'
 
 const OWNER = 'livestorejs'
 const REPO = 'livestore'
+const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
 
 const RulesetRequestBody = Schema.Struct({
   name: Schema.String,
@@ -36,7 +37,7 @@ const RulesetRequestBody = Schema.Struct({
 
 type TRulesetRequestBody = typeof RulesetRequestBody.Type
 
-const getRulesetFilePath = () => path.join(process.env.WORKSPACE_ROOT ?? '.', '.github', 'repo-settings.json')
+const getRulesetFilePath = () => path.join(workspaceRoot, '.github', 'repo-settings.json')
 
 const loadRulesetBody = () =>
   Effect.gen(function* () {
@@ -117,7 +118,7 @@ const getRulesetDetails = (rulesetId: number) =>
 const writeRulesetBodyToTmp = (body: TRulesetRequestBody) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    const tmpDir = path.join(process.env.WORKSPACE_ROOT ?? '.', 'tmp', 'gh-rulesets')
+    const tmpDir = path.join(workspaceRoot, 'tmp', 'gh-rulesets')
     yield* fs.makeDirectory(tmpDir, { recursive: true })
 
     const bodyPath = path.join(tmpDir, 'ruleset-body.json')

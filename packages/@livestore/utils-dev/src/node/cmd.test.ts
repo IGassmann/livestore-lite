@@ -8,7 +8,9 @@ import { CommandExecutor, Duration, Effect, Layer } from '@livestore/utils/effec
 import { PlatformNode } from '@livestore/utils/node'
 
 import { cmd } from './cmd.ts'
-import { CurrentWorkingDirectory } from './workspace.ts'
+import { CurrentWorkingDirectory, findWorkspaceRoot } from './workspace.ts'
+
+const workspace = findWorkspaceRoot(import.meta.dirname)
 
 const withNode = Vitest.makeWithTestCtx({
   makeLayer: () => Layer.mergeAll(PlatformNode.NodeContext.layer, CurrentWorkingDirectory.live),
@@ -37,7 +39,6 @@ Vitest.describe('cmd helper', () => {
     'supports logging with archive + retention',
     (test) =>
       Effect.gen(function* () {
-        const workspace = process.env.WORKSPACE_ROOT!
         const logsDir = path.join(workspace, 'tmp', 'cmd-tests', String(Date.now()))
 
         // first run
@@ -89,7 +90,6 @@ Vitest.describe('cmd helper', () => {
 
   Vitest.scopedLive('streams stdout and stderr with logger formatting', (test) =>
     Effect.gen(function* () {
-      const workspace = process.env.WORKSPACE_ROOT!
       const logsDir = path.join(workspace, 'tmp', 'cmd-tests', `format-${Date.now()}`)
 
       const exit = yield* cmd(['node', '-e', "console.log('out'); console.error('err')"], {
@@ -120,7 +120,6 @@ Vitest.describe('cmd helper', () => {
 
   Vitest.scopedLive('cleans up logged child process when interrupted', (test) =>
     Effect.gen(function* () {
-      const workspace = process.env.WORKSPACE_ROOT!
       const logsDir = path.join(workspace, 'tmp', 'cmd-tests', `timeout-${Date.now()}`)
 
       const result = yield* cmd(['node', '-e', 'setTimeout(() => {}, 5000)'], {

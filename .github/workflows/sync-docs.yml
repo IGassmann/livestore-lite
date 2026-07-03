@@ -45,7 +45,10 @@ jobs:
           SYNC_TARGET: ${{ github.event_name == 'workflow_dispatch' && inputs.target || 'dev' }}
         run: |
           set -euo pipefail
-          : "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}"
+          if [ -z "${MXBAI_API_KEY:-}" ]; then
+            echo "::notice::Skipping Mixedbread sync: MXBAI_API_KEY is not configured"
+            exit 0
+          fi
 
           if [ "$SYNC_TARGET" = "prod" ]; then
             vector_store_id="${MXBAI_VECTOR_STORE_ID_PROD:-}"
@@ -53,5 +56,9 @@ jobs:
             vector_store_id="${MXBAI_VECTOR_STORE_ID_DEV:-${MXBAI_VECTOR_STORE_ID_LEGACY:-}}"
           fi
 
-          : "${vector_store_id:?Missing Mixedbread vector store id for target ${SYNC_TARGET}}"
+          if [ -z "$vector_store_id" ]; then
+            echo "::notice::Skipping Mixedbread sync: no vector store id is configured for target ${SYNC_TARGET}"
+            exit 0
+          fi
+
           vp dlx @mixedbread/cli@2.3.2 store sync "$vector_store_id" "./src/content/**/*.mdx" "./src/content/**/*.md" --yes --strategy fast

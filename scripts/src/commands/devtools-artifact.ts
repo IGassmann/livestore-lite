@@ -18,6 +18,7 @@ import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 
 import { supportedDevtoolsProtocolVersions } from '@livestore/common'
+import { findWorkspaceRoot } from '@livestore/utils-dev/node'
 
 type CompatibleLivestore =
   | { readonly kind: 'range'; readonly range: string }
@@ -593,7 +594,7 @@ const materializeChromeZipAsset = (version: string, chromeZipPath: string, workD
  * legacy `Release <version>` body.
  */
 const resolveReleaseNotesPath = (version: string): string | undefined => {
-  const workspaceRoot = process.env.WORKSPACE_ROOT ?? process.cwd()
+  const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
   const candidate = path.resolve(workspaceRoot, 'release/release-notes.md')
   if (existsSync(candidate) === false) {
     console.warn(
