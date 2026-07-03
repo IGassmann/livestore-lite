@@ -36,7 +36,7 @@ component always reflects the pre-rendered bundle stored in `docs/node_modules/.
 
 ## Build pipeline
 
-- `vp run -w docs:dev` and `vp run -w docs:build` build snippets and diagrams by default before invoking Astro.
+- `vp run -w docs:dev` and `vp run -w docs:build:phase:astro` build snippets and diagrams by default before invoking Astro.
   Use `--skip-deps` to skip this step.
 - The Astro integration can also trigger snippet rebuilds automatically, but when invoked via the
   repo task runner, `LS_SKIP_SNIPPET_AUTO_BUILD_AND_WATCH=1` is set to skip auto-build and watch.

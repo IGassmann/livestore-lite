@@ -343,7 +343,7 @@ jobs:
         run: vp exec --filter @local/docs -- playwright install --with-deps chromium
       - name: Build docs
         timeout-minutes: 20
-        run: vp run -w -v docs:build
+        run: vp run -w -v docs:build:phase:astro
       - name: Save docs snippet cache
         if: ${{ success() && steps.docs-snippet-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v6

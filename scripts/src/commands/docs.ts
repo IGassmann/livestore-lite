@@ -218,7 +218,7 @@ const formatDocsDeploymentSummaryMarkdown = ({
 
 /**
  * Tldraw diagram rendering (via @kitschpatrol/tldraw-cli/Puppeteer) can leave
- * Chromium helpers alive after work completes, keeping `vp run -w docs:build`
+ * Chromium helpers alive after work completes, keeping `vp run -w docs:build:phase:astro`
  * hanging in CI. Helpers are not always direct children by the time cleanup
  * runs, so match both process descendants and Chromium processes rooted in the
  * docs working directory.
@@ -583,7 +583,7 @@ export const docsCommand = Cli.Command.make('docs').pipe(
         const distPath = `${docsPath}/dist`
         if (fs.existsSync(distPath) === false) {
           yield* Effect.logWarning(
-            `Docs dist folder not found at ${distPath}. Run 'vp run -w docs:build' or pass '--build' to the preview command.`,
+            `Docs dist folder not found at ${distPath}. Run 'vp run -w docs:build:phase:astro' or pass '--build' to the preview command.`,
           )
         }
 

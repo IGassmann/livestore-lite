@@ -356,19 +356,6 @@ export default defineConfig({
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
-      'check:quick': {
-        command: 'true',
-        dependsOn: ['check'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-
-      'docs:build': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:astro'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
       'docs:build:api': {
         command: bash(nodeTs('scripts/src/commands/docs.ts', 'build --api-docs')),
         input: [{ auto: true }, ...generatedInputExclusions],
@@ -440,7 +427,6 @@ export default defineConfig({
           ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && export MXBAI_VECTOR_STORE_ID="${MXBAI_VECTOR_STORE_ID:-${MXBAI_VECTOR_STORE_ID_PROD:-}}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID or MXBAI_VECTOR_STORE_ID_PROD secret}" && vpr @local/docs#prod:docs:sync:env',
         cache: false,
       },
-
       'examples:build': {
         command: 'vpr --filter "livestore-example-*" --fail-if-no-match build:cached',
         output: [],
@@ -905,21 +891,13 @@ export default defineConfig({
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
-      'test:unit:flaky': {
-        command: 'true',
-        dependsOn: ['test:unit:flaky:package-common'],
-        cache: false,
-      },
-      'test:unit:graph': {
-        command: 'true',
-        dependsOn: ['test:unit:flaky'],
-        cache: false,
-      },
       'test:unit': {
-        command: 'true',
-        dependsOn: ['test:unit:graph'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
+        command: [
+          'vpr -w test:unit:packages',
+          'vpr @livestore/webmesh#test:unit:flaky',
+          'vpr @local/tests-package-common#test:unit:flaky',
+        ],
+        cache: false,
       },
       'ts:build': {
         command: 'tsc --build tsconfig.dev.json',
@@ -945,67 +923,6 @@ export default defineConfig({
         command: 'tsc --build tsconfig.dev.json --noCheck',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-
-      'ci:check': {
-        command: 'true',
-        dependsOn: ['check:all'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:test:unit': {
-        command: 'true',
-        dependsOn: ['test:unit'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:examples:build': {
-        command: 'true',
-        dependsOn: ['examples:build'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:examples:build-ready': {
-        command: 'true',
-        dependsOn: ['examples:build'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:examples:deploy-build': {
-        command: 'true',
-        dependsOn: ['examples:deploy:build'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:examples:deploy-build:prod': {
-        command: 'true',
-        dependsOn: ['examples:deploy:build:prod'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:docs:snippets': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:snippets'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:docs:diagrams': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:diagrams'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:docs:astro': {
-        command: 'true',
-        dependsOn: ['docs:build:phase:astro'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:docs:build': {
-        command: 'true',
-        dependsOn: ['docs:build'],
-        output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
     },

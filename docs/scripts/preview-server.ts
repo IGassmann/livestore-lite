@@ -191,7 +191,7 @@ const startServer = async (): Promise<void> => {
   const distDir = join(docsRoot, 'dist')
   if ((await directoryExists(distDir)) === false) {
     console.error(
-      'Docs dist folder not found. Run `vp run -w docs:build` first or pass `--build` to the preview command.',
+      'Docs dist folder not found. Run `vp run -w docs:build:phase:astro` first or pass `--build` to the preview command.',
     )
     process.exit(1)
   }
