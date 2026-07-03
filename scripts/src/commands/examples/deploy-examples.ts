@@ -81,9 +81,8 @@ export const ensureExampleExists = (example: string, available: readonly string[
 export const runExampleTests = (examples: ReadonlyArray<string>, options: { skipMissing?: boolean } = {}) =>
   Effect.gen(function* () {
     /**
-     * Lightweight preflight that mirrors the `vp run -w examples:test` command so CI and deploys share
-     * the same behaviour. We deliberately run sequentially to avoid overwhelming the runner when
-     * Vite spins up multiple dev servers.
+     * Lightweight preflight for deploy flows. We deliberately run sequentially to avoid overwhelming
+     * the runner when Vite spins up multiple dev servers.
      */
     if (examples.length === 0) {
       yield* Effect.logDebug('No examples provided for testing')

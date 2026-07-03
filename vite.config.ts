@@ -480,7 +480,12 @@ export default defineConfig({
         cache: false,
       },
       'examples:test': {
-        command: bash(repoCli('examples test')),
+        command: [
+          'vpr --filter livestore-example-web-linearlite test',
+          'vpr --filter livestore-example-web-todomvc test',
+          'vpr --filter livestore-example-web-todomvc-script test',
+          'vpr --filter livestore-example-web-todomvc-sync-cf test',
+        ],
         cache: false,
       },
       'examples:validate-links': {
