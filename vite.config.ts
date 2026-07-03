@@ -205,8 +205,7 @@ const unitTestConcurrency = [
 ].join('\n')
 
 const unitTestPackageTask = (packageTask: string) => `vpr ${packageTask}`
-const unitTestPackageFilters = (packageNames: ReadonlyArray<string>) =>
-  `vpr ${packageNames.map((packageName) => `--filter ${packageName}`).join(' ')} test`
+const cachedUnitTestPackageTask = (packageTask: string) => `vpr --cache ${packageTask}`
 
 const flakyUnitTestPackageTask = (packageTask: string, warning: string) =>
   bash(
@@ -220,16 +219,16 @@ const flakyUnitTestPackageTask = (packageTask: string, warning: string) =>
     ].join('\n'),
   )
 
-const stableUnitTestPackageFilters = [
-  '@livestore/common',
-  '@livestore/common-cf',
-  '@livestore/livestore',
-  '@livestore/react',
-  '@livestore/sqlite-wasm',
-  '@livestore/utils',
-  '@livestore/utils-dev',
-  '@local/astro-tldraw',
-  '@local/astro-twoslash-code',
+const stableUnitTestTaskNames = [
+  'test:unit:stable:common',
+  'test:unit:stable:common-cf',
+  'test:unit:stable:livestore',
+  'test:unit:stable:react',
+  'test:unit:stable:sqlite-wasm',
+  'test:unit:stable:utils',
+  'test:unit:stable:utils-dev',
+  'test:unit:stable:astro-tldraw',
+  'test:unit:stable:astro-twoslash-code',
 ]
 
 export default defineConfig({
@@ -599,16 +598,8 @@ export default defineConfig({
       },
 
       'examples:build:src': {
-        command: 'true',
-        dependsOn: [
-          'livestore-workspace#ts:build',
-          'livestore-example-web-email-client#build:cached',
-          'livestore-example-web-linearlite#build:cached',
-          'livestore-example-web-todomvc#build:cached',
-          'livestore-example-web-todomvc-script#build:cached',
-          'livestore-example-web-todomvc-sync-cf#build:cached',
-          'livestore-example-cloudflare-todomvc#build',
-        ],
+        command: 'vpr --filter "livestore-example-*" --fail-if-no-match build:cached',
+        dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
@@ -847,55 +838,55 @@ export default defineConfig({
         cache: false,
       },
       'test:unit:stable:common': {
-        command: unitTestPackageTask('@livestore/common#test'),
+        command: cachedUnitTestPackageTask('@livestore/common#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:common-cf': {
-        command: unitTestPackageTask('@livestore/common-cf#test'),
+        command: cachedUnitTestPackageTask('@livestore/common-cf#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:livestore': {
-        command: unitTestPackageTask('@livestore/livestore#test'),
+        command: cachedUnitTestPackageTask('@livestore/livestore#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:react': {
-        command: unitTestPackageTask('@livestore/react#test'),
+        command: cachedUnitTestPackageTask('@livestore/react#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:sqlite-wasm': {
-        command: unitTestPackageTask('@livestore/sqlite-wasm#test'),
+        command: cachedUnitTestPackageTask('@livestore/sqlite-wasm#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:utils': {
-        command: unitTestPackageTask('@livestore/utils#test'),
+        command: cachedUnitTestPackageTask('@livestore/utils#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:utils-dev': {
-        command: unitTestPackageTask('@livestore/utils-dev#test'),
+        command: cachedUnitTestPackageTask('@livestore/utils-dev#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:astro-tldraw': {
-        command: unitTestPackageTask('@local/astro-tldraw#test'),
+        command: cachedUnitTestPackageTask('@local/astro-tldraw#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
       },
       'test:unit:stable:astro-twoslash-code': {
-        command: unitTestPackageTask('@local/astro-twoslash-code#test'),
+        command: cachedUnitTestPackageTask('@local/astro-twoslash-code#test'),
         dependsOn: ['ts:build'],
         ...noOutput,
         ...cacheable,
@@ -921,8 +912,10 @@ export default defineConfig({
         cache: false,
       },
       'test:unit:packages': {
-        command: ['vpr -w ts:build', unitTestPackageFilters(stableUnitTestPackageFilters)],
-        cache: false,
+        command: 'true',
+        dependsOn: stableUnitTestTaskNames,
+        ...noOutput,
+        ...cacheable,
       },
       'test:unit:flaky': {
         command: 'vpr -w test:unit:flaky:package-common',
