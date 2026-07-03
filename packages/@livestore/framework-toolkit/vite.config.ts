@@ -4,7 +4,7 @@ export default defineConfig({
   run: {
     tasks: {
       'build:cached': {
-        command: 'tsc',
+        command: "/bin/bash -lc 'tsc'",
         dependsOn: [{ task: 'build:cached', from: ['dependencies', 'devDependencies'] }],
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: ['dist/**', '!**/*.tsbuildinfo'],

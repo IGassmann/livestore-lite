@@ -19,6 +19,17 @@ const generatedInputExclusions = [
   '!examples/*/dist/**',
   '!examples/*/.wrangler/**',
 ]
+const stableUnitTestTaskNames = [
+  '@livestore/common#test:unit:stable',
+  '@livestore/common-cf#test:unit:stable',
+  '@livestore/livestore#test:unit:stable',
+  '@livestore/react#test:unit:stable',
+  '@livestore/sqlite-wasm#test:unit:stable',
+  '@livestore/utils#test:unit:stable',
+  '@livestore/utils-dev#test:unit:stable',
+  '@local/astro-tldraw#test:unit:stable',
+  '@local/astro-twoslash-code#test:unit:stable',
+]
 
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`
 const bash = (command: string) => `/bin/bash -lc ${shellQuote(command)}`
@@ -320,7 +331,7 @@ export default defineConfig({
 
       'check:all': {
         command: 'true',
-        dependsOn: ['check', 'ts:check', 'check:lockfile', 'check:md-imports'],
+        dependsOn: ['check', 'ts:check', 'check:lockfile', 'check:md-imports', 'check:peer-deps'],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -343,6 +354,11 @@ export default defineConfig({
           '  exit 1',
           'fi',
         ].join('\n'),
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
+      },
+      'check:peer-deps': {
+        command: bash(nodeTs('scripts/src/commands/peer-deps.ts')),
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -765,7 +781,7 @@ export default defineConfig({
         cache: false,
       },
       test: {
-        command: bash(repoCli('test')),
+        command: ['vpr -w test:unit', 'vpr -w test:integration', 'vpr -w test:perf'],
         cache: false,
       },
       'test:integration:devtools': {
@@ -855,7 +871,7 @@ export default defineConfig({
         cache: false,
       },
       'test:integration:wa-sqlite': {
-        command: bash(repoCli('test integration wa-sqlite')),
+        command: 'cd tests/wa-sqlite && vp test run',
         cache: false,
       },
       'test:integration:wa-sqlite:build': {
@@ -863,87 +879,60 @@ export default defineConfig({
         cache: false,
       },
       'test:perf': {
-        command: bash(repoCli('test perf')),
+        command:
+          'cd tests/perf && NODE_OPTIONS=--disable-warning=ExperimentalWarning FORCE_PLAYWRIGHT_VIA_CLI=1 vp exec playwright test',
         cache: false,
       },
       'test:unit:flaky:webmesh': {
-        command: [
-          'vpr -w test:unit:packages',
-          bash(
-            [
-              'if [[ "${GITHUB_ACTIONS:-}" = "true" ]]; then',
-              '  if vpr @livestore/webmesh#test; then exit 0; fi',
-              '  echo "::warning::webmesh unit tests failed (known CI-flaky suite; run locally with vpr @livestore/webmesh#test)"',
-              '  exit 0',
-              'fi',
-              'vpr @livestore/webmesh#test',
-            ].join('\n'),
-          ),
-        ],
+        command: 'true',
+        dependsOn: ['test:unit:packages', '@livestore/webmesh#test:unit:flaky'],
         cache: false,
       },
       'test:unit:flaky:package-common': {
-        command: [
-          'vpr -w test:unit:flaky:webmesh',
-          bash(
-            [
-              'if [[ "${GITHUB_ACTIONS:-}" = "true" ]]; then',
-              '  if vpr @local/tests-package-common#test; then exit 0; fi',
-              '  echo "::warning::package-common unit tests failed (known CI-flaky suite; run locally with vpr @local/tests-package-common#test)"',
-              '  exit 0',
-              'fi',
-              'vpr @local/tests-package-common#test',
-            ].join('\n'),
-          ),
-        ],
+        command: 'true',
+        dependsOn: ['test:unit:flaky:webmesh', '@local/tests-package-common#test:unit:flaky'],
         cache: false,
       },
       'test:unit:packages': {
-        command: "vpr --filter './packages/**' test:unit:stable",
+        command: 'true',
+        dependsOn: stableUnitTestTaskNames,
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'test:unit:flaky': {
-        command: 'vpr -w test:unit:flaky:package-common',
+        command: 'true',
+        dependsOn: ['test:unit:flaky:package-common'],
         cache: false,
       },
       'test:unit:graph': {
-        command: 'vpr -w test:unit:flaky',
+        command: 'true',
+        dependsOn: ['test:unit:flaky'],
         cache: false,
       },
       'test:unit': {
-        command: bash(
-          [
-            'if [[ -n "${LIVESTORE_TEST_UNIT_CONCURRENCY:-}" ]]; then',
-            '  if [[ ! "$LIVESTORE_TEST_UNIT_CONCURRENCY" =~ ^[1-9][0-9]*$ ]]; then',
-            '    echo "LIVESTORE_TEST_UNIT_CONCURRENCY must be a positive integer, got: $LIVESTORE_TEST_UNIT_CONCURRENCY" >&2',
-            '    exit 1',
-            '  fi',
-            '  export VP_RUN_CONCURRENCY_LIMIT="$LIVESTORE_TEST_UNIT_CONCURRENCY"',
-            'fi',
-            'vpr -w test:unit:graph',
-          ].join('\n'),
-        ),
+        command: 'true',
+        dependsOn: ['test:unit:graph'],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
       },
       'test:unit:legacy': {
-        command: bash(repoCli('test unit')),
-        cache: false,
+        command: 'vpr -w test:unit',
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
 
       'ts:build': {
-        command: bash(repoCli('ts')),
+        command: 'tsc --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:build-watch': {
-        command: bash(repoCli('ts --watch')),
+        command: 'tsc --build tsconfig.dev.json --watch',
         cache: false,
       },
       'ts:check': {
-        command: bash(repoCli('ts')),
+        command: 'tsc --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
@@ -955,7 +944,7 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:clean': {
-        command: bash(repoCli('ts --clean')),
+        command: 'tsc --build tsconfig.dev.json --clean',
         cache: false,
       },
       'ts:effect-lsp': {
@@ -984,9 +973,10 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ci:test:unit': {
-        command: bash(repoCli('test unit')),
-        dependsOn: ['ts:build'],
-        cache: false,
+        command: 'true',
+        dependsOn: ['ts:build', 'test:unit'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ci:examples:build': {
         command: 'true',

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite-plus'
 
 const stableUnitTestTask = {
-  command: 'WORKSPACE_ROOT=../../.. vp test',
+  command: "/bin/bash -lc 'vp test'",
   dependsOn: ['build:cached'],
   output: [],
   untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
@@ -17,7 +17,7 @@ export default defineConfig({
   run: {
     tasks: {
       'build:cached': {
-        command: 'tsc',
+        command: "/bin/bash -lc 'tsc'",
         dependsOn: [{ task: 'build:cached', from: ['dependencies', 'devDependencies'] }],
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: ['dist/**', '!**/*.tsbuildinfo'],
