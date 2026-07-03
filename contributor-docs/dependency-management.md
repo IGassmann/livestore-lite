@@ -112,14 +112,13 @@ After dependency updates, verify these meta-items:
 
 - [ ] `vp dlx expo install --check` passes for all Expo examples
 - [ ] Version constants updated appropriately
-- [ ] TypeScript build passes: `vp run -w ts:check`
 - [ ] Static checks pass: `vp run -w check:all` (run `vp check --fix` if needed)
 
 ## Troubleshooting
 
 **"Command not found" errors:** Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `vp install` from the repository root.
 
-**Script execution issues:** Ensure TypeScript builds pass: `vp run -w ts:check`
+**Script execution issues:** Ensure static checks pass: `vp run -w check:all`
 
 **Expo compatibility:** Check [Expo SDK docs](https://docs.expo.dev/versions/latest/) before updating React
 

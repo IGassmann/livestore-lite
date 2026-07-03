@@ -73,8 +73,8 @@ jobs:
           key: vite-task-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
-      - name: Run type-check
-        run: vp run -w -v ts:build
+      - name: Run typed static checks
+        run: vp run -w -v check
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6

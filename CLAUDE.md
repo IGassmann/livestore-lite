@@ -15,7 +15,6 @@ Use `vp run -w <task>` for common workflows:
 - `vp run -w check:all` / `vp check --fix` to run or auto-fix the static checks
 - `vp run -w test:unit`, `vp run -w test:integration`, or `vp run -w test:perf` to run the tests
   - Some tests can take a while to run.
-- `vp run -w ts:check` to check the TypeScript build
 - `vp run -w docs:dev` / `vp run -w docs:build` for common docs workflows
 - `vp run -w examples:test` for example tests
 - ... and more
@@ -53,7 +52,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ### Development Workflow
 
 - Run the full test suite before pushing: `vp run -w test`
-- Ensure TypeScript compilation passes: `vp run -w ts:check`
+- Ensure static checks pass: `vp run -w check:all`
 - Use `vp check --fix` to automatically fix formatting issues
 
 ### Issues

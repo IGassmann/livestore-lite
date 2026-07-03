@@ -330,7 +330,7 @@ export default defineConfig({
 
       'check:all': {
         command: 'true',
-        dependsOn: ['check', 'ts:check', 'check:lockfile', 'check:md-imports'],
+        dependsOn: ['check', 'check:lockfile', 'check:md-imports'],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -358,7 +358,7 @@ export default defineConfig({
       },
       'check:quick': {
         command: 'true',
-        dependsOn: ['check', 'ts:check'],
+        dependsOn: ['check'],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
@@ -931,18 +931,6 @@ export default defineConfig({
         command: 'tsc --build tsconfig.dev.json --watch',
         cache: false,
       },
-      'ts:check': {
-        command: 'tsc --build tsconfig.dev.json',
-        input: [{ auto: true }, '!**/*.tsbuildinfo'],
-        output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ts:check:strict': {
-        command: 'tsc --build tsconfig.dev.json',
-        input: [{ auto: true }, '!**/*.tsbuildinfo'],
-        output: [{ auto: true }, '!**/*.tsbuildinfo'],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
       'ts:clean': {
         command: 'tsc --build tsconfig.dev.json --clean',
         cache: false,
@@ -963,12 +951,6 @@ export default defineConfig({
       'ci:check': {
         command: 'true',
         dependsOn: ['check:all'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'ci:ts:build': {
-        command: 'true',
-        dependsOn: ['ts:build'],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
