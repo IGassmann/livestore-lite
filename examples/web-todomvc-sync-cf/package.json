@@ -33,7 +33,7 @@
   },
   "scripts": {
     "build": "vp run build:cached",
-    "deploy": "vp run build:cached && vp exec wrangler deploy",
+    "deploy": "vp run deploy:wrangler",
     "dev": "vp dev --configLoader runner --force",
     "preview": "vp preview --configLoader runner",
     "test": "vp run test:e2e"

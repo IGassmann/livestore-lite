@@ -18,7 +18,7 @@
     "vite": "catalog:"
   },
   "scripts": {
-    "build": "vp exec tsc -b && vp build --configLoader runner",
+    "build": "vp run build:cached",
     "dev": "vp dev --configLoader runner",
     "preview": "vp preview --configLoader runner"
   },
