@@ -329,18 +329,8 @@ export default defineConfig({
       },
 
       'check:all': {
-        command: 'true',
-        dependsOn: ['check', 'check:lockfile', 'check:md-imports'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      check: {
-        command: 'vp check',
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'check:lockfile': {
-        command: 'vp install --frozen-lockfile --lockfile-only',
+        command: ['vp check', 'vp install --frozen-lockfile --lockfile-only'],
+        dependsOn: ['check:md-imports'],
         cache: false,
       },
       'check:md-imports': {
@@ -427,11 +417,6 @@ export default defineConfig({
           ': "${MXBAI_API_KEY:?Missing MXBAI_API_KEY secret}" && export MXBAI_VECTOR_STORE_ID="${MXBAI_VECTOR_STORE_ID:-${MXBAI_VECTOR_STORE_ID_PROD:-}}" && : "${MXBAI_VECTOR_STORE_ID:?Missing MXBAI_VECTOR_STORE_ID or MXBAI_VECTOR_STORE_ID_PROD secret}" && vpr @local/docs#prod:docs:sync:env',
         cache: false,
       },
-      'examples:build': {
-        command: 'vpr --filter "livestore-example-*" --fail-if-no-match build:cached',
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
       'examples:deploy:build': {
         command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'build-workers')),
         input: [{ auto: true }, ...generatedInputExclusions],
@@ -460,19 +445,6 @@ export default defineConfig({
         command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'deploy --prod --skip-build')),
         cache: false,
       },
-      'examples:install': {
-        command: 'cd examples && vp install --frozen-lockfile',
-        cache: false,
-      },
-      'examples:test': {
-        command: [
-          'vpr --filter livestore-example-web-linearlite test',
-          'vpr --filter livestore-example-web-todomvc test',
-          'vpr --filter livestore-example-web-todomvc-script test',
-          'vpr --filter livestore-example-web-todomvc-sync-cf test',
-        ],
-        cache: false,
-      },
       'examples:validate-links': {
         command: bash(nodeTs('scripts/src/commands/examples/cli.ts', 'validate-links')),
         cache: false,
@@ -483,20 +455,11 @@ export default defineConfig({
         cache: false,
       },
 
-      'hooks:install': {
-        command: 'vp config --hooks --no-agent',
-        cache: false,
-      },
-
       'deps:clean': {
         command: [
           'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
           'find . -name tsconfig.tsbuildinfo -delete',
         ],
-        cache: false,
-      },
-      'deps:install': {
-        command: 'vp install --frozen-lockfile',
         cache: false,
       },
       'deps:reset-lock-files': {
@@ -521,12 +484,6 @@ export default defineConfig({
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
-      'release:changeset:status': {
-        command: 'vpr -w changeset:status --since "${CHANGESET_BASE_REF:-origin/main}"',
-        env: ['CHANGESET_BASE_REF'],
-        output: [],
-        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
       'release:changeset:verify-baseline': {
         command: bash(nodeTs('scripts/src/commands/changesets.ts', 'verify-baseline-changelog')),
         output: [],
@@ -535,7 +492,7 @@ export default defineConfig({
       'release:changeset:version': {
         command: [
           "git ls-files '*package.json' | xargs chmod u+w",
-          'vpr -w changeset:version',
+          'vp exec changeset version',
           nodeTs('scripts/src/commands/changesets.ts', 'restore-prerelease-changesets'),
           nodeTs('scripts/src/commands/changesets.ts', 'sync-version-source'),
           nodeTs('scripts/src/commands/changesets.ts', 'sync-standalone-consumers'),
@@ -547,7 +504,7 @@ export default defineConfig({
       },
       'release:devtools-artifact:certify-liveness': {
         command: [
-          'vpr -w deps:install',
+          'vp install --frozen-lockfile',
           bash(
             [
               ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
@@ -630,7 +587,7 @@ export default defineConfig({
       },
       'release:devtools-artifact:publish': {
         command: [
-          'vpr -w deps:install',
+          'vp install --frozen-lockfile',
           bash(
             [
               ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
@@ -675,7 +632,7 @@ export default defineConfig({
       },
       'release:devtools-artifact:repack-dryrun': {
         command: [
-          'vpr -w deps:install',
+          'vp install --frozen-lockfile',
           bash(
             [
               ': "${LIVESTORE_RELEASE_VERSION:?Set LIVESTORE_RELEASE_VERSION to the LiveStore release-group version}"',
@@ -720,7 +677,7 @@ export default defineConfig({
       },
       'release:devtools-artifact:verify': {
         command: [
-          'vpr -w deps:install',
+          'vp install --frozen-lockfile',
           bash(
             [
               'artifact_args=(--manifest "${LIVESTORE_DEVTOOLS_MANIFEST:-release/devtools-artifact.json}")',
@@ -762,7 +719,7 @@ export default defineConfig({
       },
 
       'setup:run': {
-        command: ['vpr -w deps:install', 'vpr -w hooks:install', 'vpr -w ts:build'],
+        command: ['vp install --frozen-lockfile', 'vp config --hooks --no-agent', 'tsc --build tsconfig.dev.json'],
         cache: false,
       },
       test: {
@@ -875,29 +832,15 @@ export default defineConfig({
         command: bash(nodeTs('scripts/src/commands/test-commands.ts', 'perf')),
         cache: false,
       },
-      'test:unit:flaky:webmesh': {
+      'test:unit': {
         command: 'true',
-        dependsOn: ['test:unit:packages', '@livestore/webmesh#test:unit:flaky'],
-        cache: false,
-      },
-      'test:unit:flaky:package-common': {
-        command: 'true',
-        dependsOn: ['test:unit:flaky:webmesh', '@local/tests-package-common#test:unit:flaky'],
-        cache: false,
-      },
-      'test:unit:packages': {
-        command: 'true',
-        dependsOn: stableUnitTestTaskNames,
+        dependsOn: [
+          ...stableUnitTestTaskNames,
+          '@livestore/webmesh#test:unit:flaky',
+          '@local/tests-package-common#test:unit:flaky',
+        ],
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
-      },
-      'test:unit': {
-        command: [
-          'vpr -w test:unit:packages',
-          'vpr @livestore/webmesh#test:unit:flaky',
-          'vpr @local/tests-package-common#test:unit:flaky',
-        ],
-        cache: false,
       },
       'ts:build': {
         command: 'tsc --build tsconfig.dev.json',

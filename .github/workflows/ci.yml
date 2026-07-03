@@ -257,13 +257,17 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Install examples dependencies
-        run: vp run -w -v examples:install
+        run: cd examples && vp install --frozen-lockfile
       - name: Build examples
-        run: vp run -w -v examples:build
+        run: vpr --filter "livestore-example-*" --fail-if-no-match build:cached
       - name: Install example Playwright browsers
         run: vp exec --filter livestore-example-web-linearlite -- playwright install --with-deps chromium
       - name: Test examples
-        run: vp run -w -v examples:test
+        run: |
+          vpr --filter livestore-example-web-linearlite test
+          vpr --filter livestore-example-web-todomvc test
+          vpr --filter livestore-example-web-todomvc-script test
+          vpr --filter livestore-example-web-todomvc-sync-cf test
       - id: cloudflare-deploy
         name: Detect Cloudflare deploy credentials
         env:

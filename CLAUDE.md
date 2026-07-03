@@ -16,7 +16,7 @@ Use `vp run -w <task>` for common workflows:
 - `vp run -w test:unit`, `vp run -w test:integration`, or `vp run -w test:perf` to run the tests
   - Some tests can take a while to run.
 - `vp run -w docs:dev` / `vp run -w docs:build:phase:astro` for common docs workflows
-- `vp run -w examples:test` for example tests
+- Use `vp run --filter <example-package> test` for example tests
 - ... and more
 
 ## Testing
