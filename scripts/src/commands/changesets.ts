@@ -199,8 +199,8 @@ const checkPr = (flags: Map<string, string | true>) => {
     [
       'This PR changes public LiveStore package files but does not add or modify a changeset.',
       ...packageFiles.map(({ file, packageName }) => `- ${packageName}: ${file}`),
-      'Run `pnpm exec changeset` for a release-impacting change.',
-      'Run `pnpm exec changeset add --empty` when the package change intentionally does not need release notes.',
+      'Run `vp exec changeset` for a release-impacting change.',
+      'Run `vp exec changeset add --empty` when the package change intentionally does not need release notes.',
     ].join('\n'),
   )
 }

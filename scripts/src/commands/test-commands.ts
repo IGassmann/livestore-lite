@@ -41,19 +41,19 @@ interface TestTarget {
   config?: string
 }
 
-const vitestConfigPattern = /^vitest.*\.config\.(ts|js)$/
+const viteConfigPattern = /^vite\.config\.(ts|js)$/
 const vpTestRunArgs = (...args: string[]): string[] => ['vp', 'test', 'run', ...args]
 
-/** Find vitest config files in a directory (root and tests/ subdirectory). */
-const findVitestConfigs = (pkgPath: string): string[] => {
+/** Find Vite config files with test blocks in a directory (root and tests/ subdirectory). */
+const findViteTestConfigs = (pkgPath: string): string[] => {
   const configs: string[] = []
   for (const file of fs.readdirSync(pkgPath)) {
-    if (vitestConfigPattern.test(file) === true) configs.push(path.join(pkgPath, file))
+    if (viteConfigPattern.test(file) === true) configs.push(path.join(pkgPath, file))
   }
   const testsDir = path.join(pkgPath, 'tests')
   if (fs.existsSync(testsDir) === true && fs.statSync(testsDir).isDirectory() === true) {
     for (const file of fs.readdirSync(testsDir)) {
-      if (vitestConfigPattern.test(file) === true) configs.push(path.join(testsDir, file))
+      if (viteConfigPattern.test(file) === true) configs.push(path.join(testsDir, file))
     }
   }
   return configs
@@ -65,7 +65,7 @@ const discoverPackagesWithTests = (workspaceRoot: string, excludePackages: strin
   const results: TestTarget[] = []
 
   const addPackage = (pkgPath: string, relativePath: string) => {
-    const configs = findVitestConfigs(pkgPath)
+    const configs = findViteTestConfigs(pkgPath)
     if (configs.length > 0) {
       for (const config of configs) results.push({ path: relativePath, config })
     } else {
@@ -159,7 +159,7 @@ const hasTestFiles = (dirPath: string): boolean => {
 
 // TODO: Consider replacing hardcoded package targeting with Vitest CLI flag passthrough
 // This would allow more flexible test targeting using standard Vitest options like:
-// - File patterns as positional arguments (e.g., pnpm exec vp run -w test:unit packages/@livestore/common)
+// - File patterns as positional arguments (e.g., vp run -w test:unit packages/@livestore/common)
 // - --testNamePattern/-t for filtering tests by name
 // - --exclude for excluding files
 // - Other standard Vitest CLI flags for more precise test control
@@ -176,7 +176,7 @@ export const testUnitCommand = Cli.Command.make(
 
     if (Option.isSome(filter) === true) {
       const target = path.isAbsolute(filter.value) === true ? filter.value : path.join(workspaceRoot, filter.value)
-      const configs = findVitestConfigs(target)
+      const configs = findViteTestConfigs(target)
       if (configs.length > 0) {
         yield* Effect.forEach(
           configs,

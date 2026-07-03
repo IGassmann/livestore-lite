@@ -6,10 +6,10 @@ Update all NPM dependencies across the entire monorepo using the automated TypeS
 
 ```bash
 # 1. Dry run to preview changes
-pnpm update-deps --dry-run
+vp run -w deps:update --dry-run
 
 # 2. Execute updates (Expo constraints applied globally for consistency)
-pnpm update-deps
+vp run -w deps:update
 
 # 3. Review changes
 git diff package.json packages/*/package.json examples/*/package.json pnpm-workspace.yaml pnpm-lock.yaml
@@ -26,8 +26,8 @@ git diff package.json packages/*/package.json examples/*/package.json pnpm-works
 --validate        # Run validation after updates (default: true)
 
 # Examples:
-pnpm update-deps --target patch --dry-run
-pnpm update-deps --validate false
+vp run -w deps:update --target patch --dry-run
+vp run -w deps:update --validate false
 ```
 
 ## Version Constants Update
@@ -38,11 +38,12 @@ After updating dependencies, check if version constants in `packages/@local/shar
 - Update constants when their corresponding dependencies are updated
 - Common patterns: Framework versions, runtime requirements, tool versions
 
-The repo-root `pnpm-lock.yaml` is the only authoritative lockfile. Package
-closures are derived from workspace metadata at build time, and package-local
-lockfiles are not part of the intended model anymore.
+The repo-root `pnpm-lock.yaml` is the only authoritative lockfile, but
+contributors should update it through Vite+ commands such as `vp install`.
+Package closures are derived from workspace metadata at build time, and
+package-local lockfiles are not part of the intended model anymore.
 
-## PNPM Catalog Management
+## Workspace Catalog Management
 
 The catalog is used for:
 
@@ -52,7 +53,13 @@ The catalog is used for:
 
 ### Adding to Catalog
 
-Add dependencies to the catalog (`pnpm-workspace.yaml`) when used in **3 or more packages** (excluding examples):
+Add dependencies to the catalog (`pnpm-workspace.yaml`) when used in **3 or more packages** (excluding examples). Use `vp add` for dependency edits so Vite+ remains the command surface:
+
+```bash
+vp add --filter <package-name> <dependency>
+```
+
+To check whether a dependency is already repeated enough for the catalog:
 
 ```bash
 # Check for repeated dependencies (excluding examples)
@@ -103,16 +110,16 @@ These warnings are normal and can be ignored:
 
 After dependency updates, verify these meta-items:
 
-- [ ] `pnpm dlx expo install --check` passes for all Expo examples
+- [ ] `vp dlx expo install --check` passes for all Expo examples
 - [ ] Version constants updated appropriately
-- [ ] TypeScript build passes: `pnpm exec vp run -w ts:check`
-- [ ] Static checks pass: `pnpm exec vp run -w check:all` (run `pnpm exec vp run -w check:fix` if needed)
+- [ ] TypeScript build passes: `vp run -w ts:check`
+- [ ] Static checks pass: `vp run -w check:all` (run `vp run -w check:fix` if needed)
 
 ## Troubleshooting
 
-**"Command not found" errors:** Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `pnpm install` from the repository root.
+**"Command not found" errors:** Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `vp install` from the repository root.
 
-**Script execution issues:** Ensure TypeScript builds pass: `pnpm exec vp run -w ts:check`
+**Script execution issues:** Ensure TypeScript builds pass: `vp run -w ts:check`
 
 **Expo compatibility:** Check [Expo SDK docs](https://docs.expo.dev/versions/latest/) before updating React
 

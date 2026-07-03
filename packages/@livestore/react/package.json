@@ -25,7 +25,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "vp exec tsc",
     "test": "vp test && REACT_STRICT_MODE=1 vp test"
   },
   "dependencies": {

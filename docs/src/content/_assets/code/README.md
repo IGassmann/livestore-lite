@@ -4,7 +4,7 @@
 
 ## Dependencies
 
-Use the standalone workspace package here to keep docs dependencies small. Install snippet packages with `pnpm --filter docs-code-snippets add <pkg>` and commit the updated lockfile.
+Use the standalone workspace package here to keep docs dependencies small. Install snippet packages with `vp add --filter docs-code-snippets <pkg>` and commit the updated lockfile.
 
 ## Type checking
 

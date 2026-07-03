@@ -8,7 +8,7 @@
  * 1. **Discovery**: Uses `npm-check-updates --jsonUpgraded` to find all available updates
  * 2. **Expo constraints**: Fetches constraints from Expo API (113+ managed packages)
  * 3. **Global application**: Applies Expo constraints to ALL packages for consistency
- * 4. **Direct updates**: Modifies package.json files directly, then runs `pnpm install --fix-lockfile`
+ * 4. **Direct updates**: Modifies package.json files directly, then runs `vp install --fix-lockfile`
  * 5. **Validation**: Runs `expo install --check` automatically
  *
  * Benefits: Ensures consistent versions across the entire monorepo, preventing
@@ -114,7 +114,7 @@ const discoverUpdates = (target: string) =>
     Effect.gen(function* () {
       yield* Console.log(`Discovering available updates (target: ${target})...`)
 
-      const ncuCommand = `pnpm dlx npm-check-updates --deep --jsonUpgraded --packageManager pnpm${target !== 'latest' ? ` --target ${target}` : ''}`
+      const ncuCommand = `vp dlx npm-check-updates --deep --jsonUpgraded --packageManager pnpm${target !== 'latest' ? ` --target ${target}` : ''}`
       const ncuOutput = yield* cmdText(ncuCommand).pipe(
         Effect.provide(LivestoreWorkspace.toCwd()),
         Effect.catchAll(
@@ -144,7 +144,7 @@ const fetchExpoConstraints = () =>
       yield* Console.log('Fetching Expo SDK constraints...')
 
       // Get current Expo SDK version
-      const expoVersion = yield* cmdText('pnpm view expo version').pipe(
+      const expoVersion = yield* cmdText('vp pm view expo version').pipe(
         Effect.provide(LivestoreWorkspace.toCwd()),
         Effect.map((version) => version.trim().replace(/(\d+\.\d+)\.\d+/, '$1.0')),
         Effect.catchAll(
@@ -300,10 +300,10 @@ const executeUpdates = (filteredUpdates: Record<string, Record<string, string>>,
         }
       }
 
-      // After all files updated, run pnpm install once to update lockfile
+      // After all files updated, run Vite+'s install wrapper once to update the lockfile.
       if (dryRun == null && Object.keys(filteredUpdates).length > 0) {
-        yield* Console.log('Running pnpm install to update lockfile...')
-        yield* cmd('pnpm install --fix-lockfile').pipe(Effect.provide(LivestoreWorkspace.toCwd()))
+        yield* Console.log('Running vp install to update lockfile...')
+        yield* cmd('vp install --fix-lockfile').pipe(Effect.provide(LivestoreWorkspace.toCwd()))
       }
 
       return results

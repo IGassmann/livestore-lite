@@ -5,8 +5,8 @@
 ## Running locally
 
 ```bash
-pnpm install
-pnpm --filter examples/web-todomvc-sync-cf dev
+vp install
+vp dev --configLoader runner --force
 ```
 
 The Cloudflare Vite plugin starts both the React front-end and the Durable Object

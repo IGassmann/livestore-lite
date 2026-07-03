@@ -33,7 +33,7 @@
     "./src/WebLocksMixin.js": "./src/WebLocksMixin.js"
   },
   "scripts": {
-    "build-docs": "typedoc",
+    "build-docs": "vp exec typedoc",
     "start": "web-dev-server --node-resolve",
     "test": "web-test-runner",
     "test-manual": "web-test-runner --manual"

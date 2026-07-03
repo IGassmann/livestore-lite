@@ -30,7 +30,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "vp exec tsc",
     "test": "vp test"
   },
   "dependencies": {

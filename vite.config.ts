@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { defineConfig } from 'vite-plus'
 
 const commonUntrackedEnv = ['CI', 'GITHUB_*', 'RUNNER_*']
@@ -23,6 +26,30 @@ const bash = (command: string) => `/bin/bash -lc ${shellQuote(command)}`
 const repoCli = (args: string) => `WORKSPACE_ROOT=$PWD node --experimental-strip-types scripts/src/repo-cli.ts ${args}`
 const nodeTs = (file: string, args = '') =>
   `WORKSPACE_ROOT=$PWD node --experimental-strip-types ${file}${args.length === 0 ? '' : ` ${args}`}`
+
+/*
+NOTE we're mapping test projects to absolute paths here to avoid cases where
+tests seem to be resolved multiple times, leading to duplicate runs.
+*/
+const rootDir = import.meta.dirname
+const resolveProjectPath = (packageDir: string): string => {
+  const rootConfig = path.join(packageDir, 'vite.config.ts')
+  if (fs.existsSync(rootConfig)) {
+    return rootConfig
+  }
+
+  const testsConfig = path.join(packageDir, 'tests/vite.config.ts')
+  if (fs.existsSync(testsConfig)) {
+    return testsConfig
+  }
+
+  return packageDir
+}
+
+const rootPackages = fs
+  .readdirSync(path.join(rootDir, './packages/@livestore'))
+  .filter((dir) => fs.statSync(path.join(rootDir, './packages/@livestore', dir)).isDirectory())
+  .map((dir) => resolveProjectPath(path.join(rootDir, './packages/@livestore', dir)))
 
 const cleanArtifacts = [
   'find packages tests docs examples scripts -type d \\( -name dist -o -name .turbo -o -name .cache -o -name .astro \\) -prune -exec rm -rf {} +',
@@ -166,21 +193,63 @@ const noOutput = {
   output: [],
 }
 
-const stableUnitTestPackageTasks = [
-  '@livestore/common#test',
-  '@livestore/common-cf#test',
-  '@livestore/livestore#test',
-  '@livestore/react#test',
-  '@livestore/sqlite-wasm#test',
-  '@livestore/utils#test',
-  '@livestore/utils-dev#test',
-  '@local/astro-tldraw#test',
-  '@local/astro-twoslash-code#test',
+const unitTestConcurrency = [
+  'if [[ -n "${LIVESTORE_TEST_UNIT_CONCURRENCY:-}" ]]; then',
+  '  if [[ ! "$LIVESTORE_TEST_UNIT_CONCURRENCY" =~ ^[1-9][0-9]*$ ]]; then',
+  '    echo "LIVESTORE_TEST_UNIT_CONCURRENCY must be a positive integer, got: $LIVESTORE_TEST_UNIT_CONCURRENCY" >&2',
+  '    exit 1',
+  '  fi',
+  '  export VP_RUN_CONCURRENCY_LIMIT="$LIVESTORE_TEST_UNIT_CONCURRENCY"',
+  'fi',
+  'vpr -w test:unit:graph',
+].join('\n')
+
+const unitTestPackageTask = (packageTask: string) => `vpr ${packageTask}`
+const unitTestPackageFilters = (packageNames: ReadonlyArray<string>) =>
+  `vpr ${packageNames.map((packageName) => `--filter ${packageName}`).join(' ')} test`
+
+const flakyUnitTestPackageTask = (packageTask: string, warning: string) =>
+  bash(
+    [
+      'if [[ "${GITHUB_ACTIONS:-}" = "true" ]]; then',
+      `  if ${unitTestPackageTask(packageTask)}; then exit 0; fi`,
+      `  echo "::warning::${warning}"`,
+      '  exit 0',
+      'fi',
+      unitTestPackageTask(packageTask),
+    ].join('\n'),
+  )
+
+const stableUnitTestPackageFilters = [
+  '@livestore/common',
+  '@livestore/common-cf',
+  '@livestore/livestore',
+  '@livestore/react',
+  '@livestore/sqlite-wasm',
+  '@livestore/utils',
+  '@livestore/utils-dev',
+  '@local/astro-tldraw',
+  '@local/astro-twoslash-code',
 ]
 
-const flakyUnitTestPackageTasks = ['@livestore/webmesh#test', '@local/tests-package-common#test']
-
 export default defineConfig({
+  test: {
+    projects: [
+      ...rootPackages,
+      // path.join(rootDir, 'tests/'),
+      path.join(rootDir, 'packages/@local/astro-twoslash-code/vite.config.ts'),
+      path.join(rootDir, 'packages/@local/astro-tldraw/vite.config.ts'),
+      path.join(rootDir, 'tests/integration/src/tests/adapter-cloudflare/vite.config.ts'),
+      path.join(rootDir, 'tests/integration/src/tests/adapter-web/vite.config.ts'),
+      path.join(rootDir, 'tests/integration/src/tests/devtools/vite.config.ts'),
+      path.join(rootDir, 'tests/package-common/vite.config.ts'),
+      path.join(rootDir, 'tests/sync-provider/vite.config.ts'),
+      path.join(rootDir, 'tests/wa-sqlite/vite.config.ts'),
+      path.join(rootDir, 'docs/vite.config.ts'),
+      path.join(rootDir, 'scripts/vite.config.ts'),
+    ],
+    server: { deps: { inline: ['@effect/vitest'] } },
+  },
   fmt: {
     semi: false,
     singleQuote: true,
@@ -253,7 +322,7 @@ export default defineConfig({
       'packages/@livestore/wa-sqlite/**/*.js',
       'packages/@livestore/wa-sqlite/**/*.mjs',
       'packages/@livestore/wa-sqlite/src/types/index.d.ts',
-      'packages/@livestore/sqlite-wasm/vitest.config.ts',
+      'packages/@livestore/sqlite-wasm/vite.config.ts',
       'packages/@livestore/react/test/setup.ts',
       'packages/@local/astro-twoslash-code/example/**',
       'packages/@local/astro-twoslash-code/example/src/content/_assets/code/diagnostics.ts',
@@ -361,7 +430,7 @@ export default defineConfig({
         },
       },
       {
-        files: ['**/vitest.config.ts', '**/vite.config.ts', '**/playwright.config.ts'],
+        files: ['**/vite.config.ts', '**/playwright.config.ts'],
         rules: {
           'func-style': 'off',
         },
@@ -589,19 +658,24 @@ export default defineConfig({
         cache: false,
       },
 
-      'pnpm:clean': {
+      'hooks:install': {
+        command: 'vp config --hooks --no-agent',
+        cache: false,
+      },
+
+      'deps:clean': {
         command: cleanArtifacts,
         cache: false,
       },
-      'pnpm:install': {
+      'deps:install': {
         command: 'vp install --frozen-lockfile',
         cache: false,
       },
-      'pnpm:reset-lock-files': {
+      'deps:reset-lock-files': {
         command: 'rm -f pnpm-lock.yaml examples/pnpm-lock.yaml docs/pnpm-lock.yaml',
         cache: false,
       },
-      'pnpm:update': {
+      'deps:update': {
         command: repoCli('update-deps'),
         cache: false,
       },
@@ -633,8 +707,7 @@ export default defineConfig({
         cache: false,
       },
       'release:devtools-artifact:certify-liveness': {
-        command: bash(devtoolsCertifyLiveness),
-        dependsOn: ['pnpm:install'],
+        command: ['vpr -w deps:install', bash(devtoolsCertifyLiveness)],
         cache: false,
       },
       'release:devtools-artifact:certify-liveness:no-install': {
@@ -642,8 +715,7 @@ export default defineConfig({
         cache: false,
       },
       'release:devtools-artifact:publish': {
-        command: bash(devtoolsRepack('--publish')),
-        dependsOn: ['pnpm:install'],
+        command: ['vpr -w deps:install', bash(devtoolsRepack('--publish'))],
         cache: false,
       },
       'release:devtools-artifact:publish:no-install': {
@@ -651,8 +723,7 @@ export default defineConfig({
         cache: false,
       },
       'release:devtools-artifact:repack-dryrun': {
-        command: bash(devtoolsRepack('--dry-run')),
-        dependsOn: ['pnpm:install'],
+        command: ['vpr -w deps:install', bash(devtoolsRepack('--dry-run'))],
         cache: false,
       },
       'release:devtools-artifact:repack-dryrun:no-install': {
@@ -660,8 +731,7 @@ export default defineConfig({
         cache: false,
       },
       'release:devtools-artifact:verify': {
-        command: bash(devtoolsVerify),
-        dependsOn: ['pnpm:install'],
+        command: ['vpr -w deps:install', bash(devtoolsVerify)],
         cache: false,
       },
       'release:notes:extract': {
@@ -690,13 +760,11 @@ export default defineConfig({
       },
 
       'setup:run': {
-        command: 'vpr -w ts:build',
-        dependsOn: ['pnpm:install'],
+        command: ['vpr -w deps:install', 'vpr -w hooks:install', 'vpr -w ts:build'],
         cache: false,
       },
       'setup:strict': {
-        command: 'vpr -w ts:build',
-        dependsOn: ['pnpm:install'],
+        command: ['vpr -w deps:install', 'vpr -w hooks:install', 'vpr -w ts:build'],
         cache: false,
       },
 
@@ -776,27 +844,100 @@ export default defineConfig({
         command: repoCli('test perf'),
         cache: false,
       },
+      'test:unit:stable:common': {
+        command: unitTestPackageTask('@livestore/common#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:common-cf': {
+        command: unitTestPackageTask('@livestore/common-cf#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:livestore': {
+        command: unitTestPackageTask('@livestore/livestore#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:react': {
+        command: unitTestPackageTask('@livestore/react#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:sqlite-wasm': {
+        command: unitTestPackageTask('@livestore/sqlite-wasm#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:utils': {
+        command: unitTestPackageTask('@livestore/utils#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:utils-dev': {
+        command: unitTestPackageTask('@livestore/utils-dev#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:astro-tldraw': {
+        command: unitTestPackageTask('@local/astro-tldraw#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:stable:astro-twoslash-code': {
+        command: unitTestPackageTask('@local/astro-twoslash-code#test'),
+        dependsOn: ['ts:build'],
+        ...noOutput,
+        ...cacheable,
+      },
+      'test:unit:flaky:webmesh': {
+        command: [
+          'vpr -w test:unit:packages',
+          flakyUnitTestPackageTask(
+            '@livestore/webmesh#test',
+            'webmesh unit tests failed (known CI-flaky suite; run locally with vpr @livestore/webmesh#test)',
+          ),
+        ],
+        cache: false,
+      },
+      'test:unit:flaky:package-common': {
+        command: [
+          'vpr -w test:unit:flaky:webmesh',
+          flakyUnitTestPackageTask(
+            '@local/tests-package-common#test',
+            'package-common unit tests failed (known CI-flaky suite; run locally with vpr @local/tests-package-common#test)',
+          ),
+        ],
+        cache: false,
+      },
       'test:unit:packages': {
-        command: 'true',
-        dependsOn: stableUnitTestPackageTasks,
+        command: ['vpr -w ts:build', unitTestPackageFilters(stableUnitTestPackageFilters)],
         cache: false,
       },
       'test:unit:flaky': {
-        command: 'true',
-        dependsOn: flakyUnitTestPackageTasks,
+        command: 'vpr -w test:unit:flaky:package-common',
         cache: false,
       },
       'test:unit:graph': {
-        command: 'true',
-        dependsOn: ['ts:build', 'test:unit:packages', 'test:unit:flaky'],
+        command: 'vpr -w test:unit:flaky',
         cache: false,
       },
-      // Keep the repo-cli wrapper as the canonical entry until its CI flake-ignore and concurrency semantics move into the graph.
       'test:unit': {
-        command: repoCli('test unit'),
-        dependsOn: ['ts:build'],
+        command: bash(unitTestConcurrency),
         ...noOutput,
         untrackedEnv: [...commonUntrackedEnv, 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
+      },
+      'test:unit:legacy': {
+        command: repoCli('test unit'),
+        cache: false,
       },
 
       'ts:build': {

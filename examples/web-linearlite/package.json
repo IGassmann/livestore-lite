@@ -65,12 +65,12 @@
   },
   "scripts": {
     "build": "vp run build:cached",
-    "deploy": "pnpm run build && pnpm exec wrangler deploy",
+    "deploy": "vp run build:cached && vp exec wrangler deploy",
     "dev": "vp dev --configLoader runner --force",
     "preview": "vp preview --configLoader runner",
     "test": "vp run test:e2e",
-    "wrangler:deploy": "wrangler deploy -c dist/server/wrangler.json",
-    "wrangler:dev": "wrangler dev --port 8787 --inspector-port 9230"
+    "wrangler:deploy": "vp exec wrangler deploy -c dist/server/wrangler.json",
+    "wrangler:dev": "vp exec wrangler dev --port 8787 --inspector-port 9230"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

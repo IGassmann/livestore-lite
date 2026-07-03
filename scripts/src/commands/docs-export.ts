@@ -454,7 +454,7 @@ const assertSnippetManifest = (docsRoot: string) =>
       }
     }
     return yield* new SnippetManifestMissing({
-      message: 'Snippet manifest not found. Run "pnpm exec vp run -w docs:build:phase:snippets" first.',
+      message: 'Snippet manifest not found. Run "vp run -w docs:build:phase:snippets" first.',
       checked: candidates,
     })
   })

@@ -437,12 +437,12 @@ const packPackageForPublish = ({ cwd, pkg, version }: { cwd: string; pkg: string
     yield* fsEffect.makeDirectory(packDir, { recursive: true })
 
     /**
-     * Use pnpm for packaging because the repo intentionally keeps source-time
+     * Use Vite+'s package-manager wrapper for packaging because the repo intentionally keeps source-time
      * `exports`/`bin` in package.json and publish-time dist mappings in
-     * `publishConfig`. `pnpm pack` materializes those mappings into the tarball;
+     * `publishConfig`. `vp pm pack` materializes those mappings into the tarball;
      * plain `npm publish <directory>` would publish the source mappings instead.
      */
-    yield* cmd(`DT_PASSTHROUGH=1 pnpm --dir ${pkgDir} pack --pack-destination ${packDir}`, { shell: true }).pipe(
+    yield* cmd(`cd ${pkgDir} && DT_PASSTHROUGH=1 vp pm pack --pack-destination ${packDir}`, { shell: true }).pipe(
       Effect.provide(CurrentWorkingDirectory.fromPath(cwd)),
     )
 

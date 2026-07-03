@@ -23,9 +23,7 @@ const debugTsCommand = Cli.Command.make('ts').pipe(
     ),
 
     // Check for duplicate package issues
-    Cli.Command.make('duplicates', {}, () =>
-      cmd('pnpm dedupe --check').pipe(Effect.provide(LivestoreWorkspace.toCwd())),
-    ),
+    Cli.Command.make('duplicates', {}, () => cmd('vp dedupe --check').pipe(Effect.provide(LivestoreWorkspace.toCwd()))),
   ]),
 )
 
@@ -34,13 +32,15 @@ const debugDepsCommand = Cli.Command.make('deps').pipe(
   Cli.Command.withSubcommands([
     // Show duplicate dependencies
     Cli.Command.make('duplicates', {}, () =>
-      cmd('pnpm list --depth=0 --parseable | sort | uniq -d', { shell: true }).pipe(
+      cmd('vp pm list --depth=0 --parseable | sort | uniq -d', { shell: true }).pipe(
         Effect.provide(LivestoreWorkspace.toCwd()),
       ),
     ),
 
     // Check for outdated dependencies
-    Cli.Command.make('outdated', {}, () => cmd('pnpm outdated').pipe(Effect.provide(LivestoreWorkspace.toCwd()))),
+    Cli.Command.make('outdated', {}, () =>
+      cmd('vp dlx npm-check-updates --deep --packageManager pnpm').pipe(Effect.provide(LivestoreWorkspace.toCwd())),
+    ),
   ]),
 )
 
