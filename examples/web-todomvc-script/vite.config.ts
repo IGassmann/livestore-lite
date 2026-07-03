@@ -6,11 +6,7 @@ import { defineConfig } from 'vite-plus'
 const enableLivestoreDevtools = process.env.LIVESTORE_ENABLE_DEVTOOLS_VITE === '1'
 const buildTask = {
   command: 'vp build --configLoader runner',
-  dependsOn: [
-    '@livestore/adapter-web#build:cached',
-    '@livestore/livestore#build:cached',
-    '@livestore/sync-cf#build:cached',
-  ],
+  dependsOn: [{ task: 'build:cached', from: 'dependencies' }],
   input: [{ auto: true }, '!dist/**', '!**/.wrangler/**'],
   output: ['dist/**'],
   untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],

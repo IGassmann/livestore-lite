@@ -74,7 +74,7 @@ jobs:
           restore-keys: |
             vite-task-${{ runner.os }}-${{ runner.arch }}-
       - name: Run typed static checks
-        run: vp run -w -v check
+        run: vp check
       - name: Save Vite Task cache
         if: success()
         uses: actions/cache/save@v6
