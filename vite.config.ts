@@ -915,17 +915,17 @@ export default defineConfig({
       },
 
       'ts:build': {
-        command: bash(repoCli('ts')),
+        command: 'tsc --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:build-watch': {
-        command: bash(repoCli('ts --watch')),
+        command: 'tsc --build tsconfig.dev.json --watch',
         cache: false,
       },
       'ts:check': {
-        command: bash(repoCli('ts')),
+        command: 'tsc --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
         output: [{ auto: true }, '!**/*.tsbuildinfo'],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
@@ -937,7 +937,7 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ts:clean': {
-        command: bash(repoCli('ts --clean')),
+        command: 'tsc --build tsconfig.dev.json --clean',
         cache: false,
       },
       'ts:effect-lsp': {
