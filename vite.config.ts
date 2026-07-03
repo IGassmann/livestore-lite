@@ -909,11 +909,6 @@ export default defineConfig({
         output: [],
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*', 'LIVESTORE_TEST_UNIT_CONCURRENCY'],
       },
-      'test:unit:legacy': {
-        command: bash(repoCli('test unit')),
-        cache: false,
-      },
-
       'ts:build': {
         command: 'tsc --build tsconfig.dev.json',
         input: [{ auto: true }, '!**/*.tsbuildinfo'],
@@ -966,9 +961,10 @@ export default defineConfig({
         untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ci:test:unit': {
-        command: bash(repoCli('test unit')),
-        dependsOn: ['ts:build'],
-        cache: false,
+        command: 'true',
+        dependsOn: ['test:unit'],
+        output: [],
+        untrackedEnv: ['CI', 'GITHUB_*', 'RUNNER_*'],
       },
       'ci:examples:build': {
         command: 'true',
