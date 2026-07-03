@@ -2,7 +2,7 @@ import fs from 'node:fs'
 
 import { liveStoreVersion } from '@livestore/common'
 import { shouldNeverHappen } from '@livestore/utils'
-import { cmd, cmdText, LivestoreWorkspace } from '@livestore/utils-dev/node'
+import { cmd, cmdText, findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
 import { Duration, Effect, HttpClient, HttpClientRequest, Schedule, Schema } from '@livestore/utils/effect'
 import { Cli, getFreePort } from '@livestore/utils/node'
 import { buildDiagrams, watchDiagrams } from '@local/astro-tldraw'
@@ -21,8 +21,7 @@ import { deployToNetlify, purgeNetlifyCdn } from '../shared/netlify.ts'
 import { emitWorkflowReportRecord, nowIsoUtc } from '../shared/workflow-report.ts'
 import { exportMarkdownCommand } from './docs-export.ts'
 
-const workspaceRoot =
-  process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run docs commands through Vite+ tasks`)
+const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
 const docsPath = `${workspaceRoot}/docs`
 const isGithubAction = process.env.GITHUB_ACTIONS === 'true'
 

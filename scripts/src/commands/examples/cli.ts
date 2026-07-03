@@ -1,7 +1,6 @@
 import fs from 'node:fs'
 
-import { shouldNeverHappen } from '@livestore/utils'
-import { cmd, LivestoreWorkspace } from '@livestore/utils-dev/node'
+import { cmd, findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
 import { Effect, Option } from '@livestore/utils/effect'
 import { Cli } from '@livestore/utils/node'
 
@@ -15,8 +14,7 @@ import {
 } from './deploy-examples.ts'
 import { validateLinksCommand } from './validate-links.ts'
 
-const workspaceRoot =
-  process.env.WORKSPACE_ROOT ?? shouldNeverHappen(`WORKSPACE_ROOT is not set. Run example commands through Vite+ tasks`)
+const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
 const examplesDir = `${workspaceRoot}/examples`
 
 const exampleChoices = (() => {

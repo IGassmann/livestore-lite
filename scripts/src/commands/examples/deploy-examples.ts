@@ -1,7 +1,7 @@
 import process from 'node:process'
 
 import { liveStoreVersion } from '@livestore/common'
-import { cmd, cmdText, LivestoreWorkspace } from '@livestore/utils-dev/node'
+import { cmd, cmdText, findWorkspaceRoot, LivestoreWorkspace } from '@livestore/utils-dev/node'
 import { Effect, FileSystem, Layer, Logger, LogLevel, Option, Schema } from '@livestore/utils/effect'
 import { Cli, PlatformNode } from '@livestore/utils/node'
 
@@ -34,12 +34,7 @@ export class ScriptError extends Schema.TaggedError<ScriptError>()('ScriptError'
  * the resulting workers.dev targets.
  */
 
-const workspaceRoot = process.env.WORKSPACE_ROOT
-if (workspaceRoot == null) {
-  console.error('WORKSPACE_ROOT environment variable is not set')
-  process.exit(1)
-}
-
+const workspaceRoot = findWorkspaceRoot(import.meta.dirname)
 const examplesDir = `${workspaceRoot}/examples`
 
 // Accept only the fields we care about (scripts) while tolerating extra metadata from Vite or toolchains.

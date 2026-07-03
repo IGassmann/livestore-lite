@@ -16,8 +16,7 @@ const config: PlaywrightTestConfig = {
   webServer: baseURL
     ? undefined
     : {
-        command:
-          'vp exec --filter livestore-example-web-todomvc-script -- vite --configLoader runner --force --host 127.0.0.1',
+        command: 'vp dev --configLoader runner --force --host 127.0.0.1',
         port,
         reuseExistingServer: true,
         timeout: 180_000,
