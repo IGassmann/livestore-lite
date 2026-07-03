@@ -1,6 +1,6 @@
 # Cloudflare Example Deployments
 
-LiveStore examples ship via Cloudflare Workers using the `pnpm exec vp run -w examples:deploy` workflow. The script builds each example and deploys the corresponding Worker. Each deployment is reachable via its `*.livestore.workers.dev` hostname—no additional DNS step is required.
+LiveStore examples ship via Cloudflare Workers using the `vp run -w examples:deploy` workflow. The script builds each example and deploys the corresponding Worker. Each deployment is reachable via its `*.livestore.workers.dev` hostname—no additional DNS step is required.
 
 ## Branch Behaviour
 
@@ -14,19 +14,19 @@ The script uses the directory name inside `/examples` as the `<slug>` (for examp
 
 - Authenticate with Cloudflare:
   ```bash
-  pnpm exec wrangler login
-  pnpm exec wrangler whoami            # should list the LiveStore account
+  vp exec wrangler login
+  vp exec wrangler whoami            # should list the LiveStore account
   ```
 - (Optional) A Cloudflare API token (`CLOUDFLARE_API_TOKEN`) allows headless deploys in CI, but interactive work only requires `wrangler login`.
-- Verify that the target Worker does not already exist or can be replaced. `pnpm exec vp run -w examples:deploy` emits the Workers.dev URL so you can sanity-check the new build.
+- Verify that the target Worker does not already exist or can be replaced. `vp run -w examples:deploy` emits the Workers.dev URL so you can sanity-check the new build.
 
 ## Running Deployments
 
 ```bash
-pnpm exec vp run -w examples:deploy                        # build + deploy all configured examples
-pnpm exec vp run -w examples:deploy -- --example-filter web-
-pnpm exec vp run -w examples:deploy:prod                   # stable release versions only
-pnpm exec vp run -w examples:validate-links                # verify published prod/dev demo URLs
+vp run -w examples:deploy                        # build + deploy all configured examples
+vp run -w examples:deploy -- --example-filter web-
+vp run -w examples:deploy:prod                   # stable release versions only
+vp run -w examples:validate-links                # verify published prod/dev demo URLs
 ```
 
 The deploy command builds examples in parallel (three at a time) and retries Worker uploads twice. Preview Workers are accessible exclusively via their Workers.dev host names. The validation command checks the repo-owned public deployment metadata in `packages/@local/shared/src/example-deployments.ts` without following redirects, so intentional route redirects such as LinearLite remain visible.
@@ -37,12 +37,12 @@ The deploy command builds examples in parallel (three at a time) and retries Wor
 2. Ensure the example’s `package.json` has `@cloudflare/vite-plugin` and `wrangler` in `devDependencies`, plus a `wrangler.toml` with `[assets]` pointing at the built client output.
 3. Add `[env.prod]`, `[env.preview]`, and `[env.dev]` sections in `wrangler.toml`; duplicate any bindings (Durable Objects, D1, queues, secrets, etc.) inside each environment block because Wrangler does not inherit them automatically.
 4. Provision Cloudflare resources if needed (Durable Objects, D1, secrets) via `wrangler`. Update the manifest with any required metadata.
-5. Run `pnpm exec vp run -w examples:deploy -- --example-filter <slug>` locally to verify the Worker deploys.
+5. Run `vp run -w examples:deploy -- --example-filter <slug>` locally to verify the Worker deploys.
 6. Add the public prod/dev URL contract to `packages/@local/shared/src/example-deployments.ts` when the example should be linked from docs.
 7. Update `docs/src/data/examples.ts` to consume the shared deployment entry instead of hard-coding URLs.
-8. Run `pnpm exec vp run -w examples:validate-links -- --example-filter <slug>` to verify the public demo endpoints.
+8. Run `vp run -w examples:validate-links -- --example-filter <slug>` to verify the public demo endpoints.
 
 ## Troubleshooting
 
-- `wrangler deploy` fails with `Not logged in`: re-run `pnpm exec wrangler login`.
+- `wrangler deploy` fails with `Not logged in`: re-run `vp exec wrangler login`.
 - Preview Worker unavailable: the worker is deployed at `https://<worker-name>.livestore.workers.dev`. Check `wrangler deployments list --name <worker-name>` for status.

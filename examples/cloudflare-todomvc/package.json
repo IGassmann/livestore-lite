@@ -17,9 +17,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "wrangler build",
-    "dev": "wrangler dev",
-    "wrangler:deploy": "wrangler deploy"
+    "build": "vp exec wrangler build",
+    "dev": "vp exec wrangler dev",
+    "wrangler:deploy": "vp exec wrangler deploy"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

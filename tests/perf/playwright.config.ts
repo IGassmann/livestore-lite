@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const isVSCode = process.env.VSCODE_PID !== undefined
 if (process.env.FORCE_PLAYWRIGHT_VIA_CLI !== '1' && isVSCode === false) {
-  throw new Error(`Playwright tests must be run via 'pnpm exec vp run -w test:perf'.`)
+  throw new Error(`Playwright tests must be run via 'vp run -w test:perf'.`)
 }
 
 /**
@@ -27,7 +27,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm test-app',
+    command: 'vp build test-app --configLoader runner && vp preview test-app --configLoader runner',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
   },

@@ -587,7 +587,7 @@ const materializeChromeZipAsset = (version: string, chromeZipPath: string, workD
 }
 
 /**
- * Resolves the release notes file emitted by `pnpm exec vp run -w release:notes:extract`.
+ * Resolves the release notes file emitted by `vp run -w release:notes:extract`.
  * Returns `undefined` (with a warning) when the file is missing so DevTools-artifact
  * publishing remains unblocked. In that case the GitHub Release falls back to the
  * legacy `Release <version>` body.
@@ -598,7 +598,7 @@ const resolveReleaseNotesPath = (version: string): string | undefined => {
   if (existsSync(candidate) === false) {
     console.warn(
       `[publishChromeZipReleaseAsset] release/release-notes.md not found for v${version}; ` +
-        'falling back to "Release <version>" body. Run `pnpm exec vp run -w release:notes:extract` to populate it.',
+        'falling back to "Release <version>" body. Run `vp run -w release:notes:extract` to populate it.',
     )
     return undefined
   }

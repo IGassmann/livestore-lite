@@ -19,7 +19,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm --filter @local/tests-perf-streaming-loopback dev',
+    command: 'vp dev --configLoader runner --config test-app/vite.config.ts',
     url: 'http://localhost:46001',
     reuseExistingServer: !process.env.CI,
   },

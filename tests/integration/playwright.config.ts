@@ -10,7 +10,7 @@ import { envTruish } from '@livestore/utils'
  */
 const isVSCode = process.env.VSCODE_PID !== undefined
 if (envTruish(process.env.FORCE_PLAYWRIGHT_VIA_CLI) === false && isVSCode === false) {
-  throw new Error(`Playwright tests must be run via 'pnpm exec vp run -w test:integration:playwright:suite'.`)
+  throw new Error(`Playwright tests must be run via 'vp run -w test:integration:playwright:suite'.`)
 }
 
 /**

@@ -20,13 +20,14 @@ experience is recommended:
 - Experience with TypeScript monorepo setups
 - Experience with distributed systems
 
-### Required tooling: Node + pnpm
+### Required tooling: Node + Vite+
 
-LiveStore repo tooling runs on [Node.js](https://nodejs.org/) 24 and
-[pnpm](https://pnpm.io/) 11. The repository pins pnpm via `packageManager`, and
-repo scripts invoke TypeScript tooling through Node's built-in type stripping.
+LiveStore repo tooling runs on [Node.js](https://nodejs.org/) 24 and uses
+Vite+ (`vp`) as the contributor-facing command surface. The repository still
+pins pnpm via `packageManager` so Vite+ can manage the workspace and lockfile
+consistently.
 
-Install Node 24, then activate pnpm with Corepack:
+Install Node 24, then activate the pinned package manager with Corepack:
 
 ```bash
 corepack enable
@@ -36,7 +37,7 @@ corepack prepare pnpm@11.3.0 --activate
 Some package-specific build infrastructure may still use its own tooling. For
 example, the wa-sqlite package keeps its package-local Nix flake until a
 validated non-Nix build path exists. The general repository task interface is
-`pnpm exec vp run -w <task>`.
+`vp run -w <task>`.
 
 ## Initial setup
 
@@ -45,11 +46,11 @@ git clone git@github.com:livestorejs/livestore.git
 cd livestore
 corepack enable
 corepack prepare pnpm@11.3.0 --activate
-pnpm install
+vp install
 ```
 
-Use `pnpm exec vp run -w` to open the interactive task picker, and run repository
-tasks with `pnpm exec vp run -w <task>`.
+Use `vp run -w` to open the interactive task picker, and run repository
+tasks with `vp run -w <task>`.
 
 ## General notes
 
@@ -59,7 +60,9 @@ tasks with `pnpm exec vp run -w <task>`.
     - LiveStore also makes heavy use of
       [TypeScript project references](https://www.typescriptlang.org/docs/handbook/project-references.html).
 - Package management
-  - This project uses [pnpm](https://pnpm.io/) to manage the workspace.
+  - Use Vite+ commands (`vp install`, `vp add`, `vp exec`, `vp dlx`, `vp pm`)
+    for contributor workflows. pnpm remains the pinned lockfile and workspace
+    implementation detail.
 - LiveStore is primarily developed in VSCode/Cursor.
 - Testing
   - LiveStore uses Vitest for most tests and Playwright for browser tests.
@@ -68,7 +71,7 @@ tasks with `pnpm exec vp run -w <task>`.
 
 - [TypeScript](https://www.typescriptlang.org/)
 - [Effect](https://effect.website)
-- [pnpm](https://pnpm.io/)
+- [Vite+](https://viteplus.dev/)
 - [Vitest](https://vitest.dev/)
 - [Playwright](https://playwright.dev/)
 - [OpenTelemetry](https://opentelemetry.io/)
@@ -84,28 +87,31 @@ them.
 
 Run common workflows through Vite+ tasks from the repository root:
 
-- `pnpm exec vp run -w ts:check` — build/check TypeScript across the monorepo
-- `pnpm exec vp run -w check:all` / `pnpm exec vp run -w check:fix` — run or auto-fix static checks
-- `pnpm exec vp run -w test:unit` / `pnpm exec vp run -w test:integration` / `pnpm exec vp run -w test:perf` — run test suites
-- `pnpm exec vp run -w docs:dev` / `pnpm exec vp run -w docs:build` — common docs workflows
-- `pnpm exec vp run -w examples:test` — example validation
-- `pnpm exec vp run -w release:changeset:status` — inspect release status
-- `pnpm exec vp run -w` — open the interactive task picker
+- `vp run -w ts:check` — build/check TypeScript across the monorepo
+- `vp run -w check:all` / `vp run -w check:fix` — run or auto-fix static checks
+- `vp run -w test:unit` / `vp run -w test:integration` / `vp run -w test:perf` — run test suites
+- `vp run -w docs:dev` / `vp run -w docs:build` — common docs workflows
+- `vp run -w examples:test` — example validation
+- `vp run -w release:changeset:status` — inspect release status
+- `vp run -w` — open the interactive task picker
 
 Root task definitions live in `vite.config.ts`. Use
-`pnpm exec vp run -w <task-name>` for task-style workflows.
+`vp run -w <task-name>` for task-style workflows.
 
 Release workflows are documented in
 [`contributor-docs/release-workflows.md`](https://github.com/livestorejs/livestore/blob/main/contributor-docs/release-workflows.md).
 
 ## Tasks to run before committing
 
-A `pre-commit` hook runs `pnpm exec vp run -w check:quick` automatically, but you should
-also run the following manually for a tighter feedback loop:
+The repository installs Vite+ git hooks during setup with
+`vp run -w hooks:install`. This sets `core.hooksPath=.vite-hooks/_`;
+the tracked `.vite-hooks/pre-commit` hook runs `vp staged`, which uses the
+`staged` configuration in `vite.config.ts` to check and fix staged files before
+commit. You should also run the following manually for a tighter feedback loop:
 
-- `pnpm exec vp run -w check:fix` — auto-fix static-check issues
-- `pnpm exec vp run -w ts:check` — ensure TypeScript passes
-- `pnpm exec vp run -w test:unit` (and relevant integration suites) — run tests
+- `vp run -w check:fix` — auto-fix static-check issues
+- `vp run -w ts:check` — ensure TypeScript passes
+- `vp run -w test:unit` (and relevant integration suites) — run tests
 
 ## Examples
 
@@ -120,7 +126,7 @@ also run the following manually for a tighter feedback loop:
 #### Making changes to examples
 
 1. Make your desired changes directly in `/examples/<example-name>`.
-2. Test your changes by running the example (e.g., `pnpm dev` in the example
+2. Test your changes by running the example (e.g., `vp dev` in the example
    directory).
 3. Commit your changes.
 
@@ -146,7 +152,9 @@ export VITE_OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
 
 ### Package management
 
-- This project uses [pnpm](https://pnpm.io/) to manage the workspace.
+- Use Vite+ as the command surface for dependency and binary operations:
+  `vp install`, `vp add`, `vp exec`, `vp dlx`, and `vp pm`.
+- pnpm remains the pinned package-manager backend and lockfile format.
 - We're using the `workspace:*` protocol to link packages together.
 - We should try to keep dependencies to an absolute minimum and only add them if
   we absolutely need them.

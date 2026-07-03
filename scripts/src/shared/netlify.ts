@@ -295,7 +295,7 @@ const resolveNetlifyAuthToken = Effect.gen(function* () {
 
   if (configContent == null || configPath == null) {
     return yield* new NetlifyError({
-      message: `Netlify auth token not found. Checked: ${configCandidates.join(', ')}. Run 'pnpm dlx netlify-cli login' or set NETLIFY_AUTH_TOKEN.`,
+      message: `Netlify auth token not found. Checked: ${configCandidates.join(', ')}. Run 'vp dlx netlify-cli login' or set NETLIFY_AUTH_TOKEN.`,
       reason: 'auth',
     })
   }
@@ -320,7 +320,7 @@ const resolveNetlifyAuthToken = Effect.gen(function* () {
 
   if (resolvedToken == null) {
     return yield* new NetlifyError({
-      message: `Netlify auth token not found in ${configPath}. Run 'pnpm dlx netlify-cli login' or set NETLIFY_AUTH_TOKEN.`,
+      message: `Netlify auth token not found in ${configPath}. Run 'vp dlx netlify-cli login' or set NETLIFY_AUTH_TOKEN.`,
       reason: 'auth',
     })
   }

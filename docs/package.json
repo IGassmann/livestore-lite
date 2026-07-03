@@ -8,16 +8,15 @@
     "./sidebar": "./src/data/sidebar.ts"
   },
   "scripts": {
-    "astro": "astro",
-    "check": "astro sync && astro-check",
-    "build": "pnpm check && astro build",
-    "dev": "astro dev",
-    "dev:docs:sync": "mxbai store sync \"livestore-docs-dev\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\"  --yes --strategy fast",
-    "prod:docs:sync": "mxbai store sync \"livestore-docs\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\" --yes --strategy fast",
-    "prod:docs:sync:env": "mxbai store sync \"$MXBAI_VECTOR_STORE_ID\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\" --yes --strategy fast",
-    "dev:docs:sync:dry-run": "mxbai store sync \"livestore-docs-dev\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\" --dry-run",
-    "preview": "astro preview",
-    "start": "astro dev"
+    "astro": "vp exec astro",
+    "build": "vp exec astro check && vp exec astro build",
+    "dev": "vp exec astro dev",
+    "dev:docs:sync": "vp exec mxbai store sync \"livestore-docs-dev\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\"  --yes --strategy fast",
+    "prod:docs:sync": "vp exec mxbai store sync \"livestore-docs\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\" --yes --strategy fast",
+    "prod:docs:sync:env": "vp exec mxbai store sync \"$MXBAI_VECTOR_STORE_ID\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\" --yes --strategy fast",
+    "dev:docs:sync:dry-run": "vp exec mxbai store sync \"livestore-docs-dev\" \"./src/content/**/*.mdx\" \"./src/content/**/*.md\" --dry-run",
+    "preview": "vp exec astro preview",
+    "start": "vp exec astro dev"
   },
   "dependencies": {
     "@astrojs/check": "0.9.9",

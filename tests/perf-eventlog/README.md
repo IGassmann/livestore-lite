@@ -11,8 +11,8 @@ The `perf-eventlog` performance tests are focused on event streaming. These test
 
 ## Commands
 
-- `pnpm dev` – run the test-app
-- `pnpm test` – run performance test
+- `vp dev --configLoader runner --config test-app/vite.config.ts` – run the test-app
+- `NODE_OPTIONS=--disable-warning=ExperimentalWarning vp exec playwright test` – run performance test
 
 ## Snapshot loading
 

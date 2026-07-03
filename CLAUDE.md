@@ -2,7 +2,7 @@
 
 ## Setup
 
-This repository uses Node 24 and pnpm 11 for local development. Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `pnpm install` before running repo tasks.
+This repository uses Node 24 and Vite+ as the contributor-facing command surface. Run `corepack enable`, `corepack prepare pnpm@11.3.0 --activate`, and `vp install` before running repo tasks.
 
 ## Tooling
 
@@ -10,19 +10,19 @@ This repository uses Node 24 and pnpm 11 for local development. Run `corepack en
 
 ### Vite+ tasks
 
-Use `pnpm exec vp run -w <task>` for common workflows:
+Use `vp run -w <task>` for common workflows:
 
-- `pnpm exec vp run -w check:all` / `pnpm exec vp run -w check:fix` to run or auto-fix the static checks
-- `pnpm exec vp run -w test:unit`, `pnpm exec vp run -w test:integration`, or `pnpm exec vp run -w test:perf` to run the tests
+- `vp run -w check:all` / `vp run -w check:fix` to run or auto-fix the static checks
+- `vp run -w test:unit`, `vp run -w test:integration`, or `vp run -w test:perf` to run the tests
   - Some tests can take a while to run.
-- `pnpm exec vp run -w ts:check` to check the TypeScript build
-- `pnpm exec vp run -w docs:dev` / `pnpm exec vp run -w docs:build` for common docs workflows
-- `pnpm exec vp run -w examples:test` for example tests
+- `vp run -w ts:check` to check the TypeScript build
+- `vp run -w docs:dev` / `vp run -w docs:build` for common docs workflows
+- `vp run -w examples:test` for example tests
 - ... and more
 
 ## Testing
 
-- When working on specific Vitest tests, use the `vitest` CLI directly instead of broader Vite+ tasks and make sure to target the specific test file and test name: e.g. `vitest run packages/@livestore/common/src/index.test.ts --testNamePattern "should be able to get the number of users"`.
+- When working on specific Vitest tests, use `vp test run` directly instead of broader Vite+ tasks and make sure to target the specific test file and test name: e.g. `vp test run packages/@livestore/common/src/index.test.ts --testNamePattern "should be able to get the number of users"`.
 
 ## TypeScript
 
@@ -42,7 +42,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ## Git
 
 - The default branch of this repository is `main`.
-- Before committing, run `pnpm exec vp run -w check:fix` to auto-fix most static-check errors. Make sure there are no static-check errors.
+- Before committing, run `vp run -w check:fix` to auto-fix most static-check errors. Make sure there are no static-check errors.
 
 ### Branch Naming Conventions
 
@@ -52,9 +52,9 @@ Use GitHub issues or an issue checklist for non-trivial work.
 
 ### Development Workflow
 
-- Run the full test suite before pushing: `pnpm exec vp run -w test`
-- Ensure TypeScript compilation passes: `pnpm exec vp run -w ts:check`
-- Use `pnpm exec vp run -w check:fix` to automatically fix formatting issues
+- Run the full test suite before pushing: `vp run -w test`
+- Ensure TypeScript compilation passes: `vp run -w ts:check`
+- Use `vp run -w check:fix` to automatically fix formatting issues
 
 ### Issues
 

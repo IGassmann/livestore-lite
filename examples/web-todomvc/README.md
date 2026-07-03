@@ -5,6 +5,6 @@
 ## Running locally
 
 ```bash
-pnpm install
-pnpm dev
+vp install
+vp dev --configLoader runner --force
 ```

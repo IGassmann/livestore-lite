@@ -67,8 +67,8 @@ user-visible or package-affecting changes, and use an empty changeset for
 changes that do not need release notes:
 
 ```bash
-pnpm exec changeset
-pnpm exec changeset add --empty
+vp exec changeset
+vp exec changeset add --empty
 ```
 
 See [`.changeset/README.md`](https://github.com/livestorejs/livestore/tree/main/.changeset#readme)

@@ -80,7 +80,7 @@ export const checkPeerDependencies = Effect.gen(function* () {
     return yield* Effect.fail(
       new PeerDepCheckError({
         message:
-          'Missing repo-root pnpm-lock.yaml. Run pnpm install from the repo root to refresh the authoritative lockfile.',
+          'Missing repo-root pnpm-lock.yaml. Run vp install from the repo root to refresh the authoritative lockfile.',
       }),
     )
   }

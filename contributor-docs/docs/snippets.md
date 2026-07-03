@@ -36,11 +36,11 @@ component always reflects the pre-rendered bundle stored in `docs/node_modules/.
 
 ## Build pipeline
 
-- `pnpm exec vp run -w docs:dev` and `pnpm exec vp run -w docs:build` build snippets and diagrams by default before invoking Astro.
+- `vp run -w docs:dev` and `vp run -w docs:build` build snippets and diagrams by default before invoking Astro.
   Use `--skip-deps` to skip this step.
 - The Astro integration can also trigger snippet rebuilds automatically, but when invoked via the
   repo task runner, `LS_SKIP_SNIPPET_AUTO_BUILD_AND_WATCH=1` is set to skip auto-build and watch.
-- `pnpm exec vp run -w docs:build:phase:snippets` still walks the workspace, renders Twoslash bundles, and writes JSON
+- `vp run -w docs:build:phase:snippets` still walks the workspace, renders Twoslash bundles, and writes JSON
   artefacts plus a manifest to `docs/node_modules/.astro-twoslash-code/` for ad-hoc or CI usage.
 - Snippet builds render imported entry files with Twoslash and support-file tabs with syntax
   highlighting.
@@ -53,11 +53,11 @@ component always reflects the pre-rendered bundle stored in `docs/node_modules/.
 - The snippet workspace has its own `tsconfig.json` aligned with the Twoslash compiler options
   (NodeNext modules/resolution, React JSX, `exactOptionalPropertyTypes`, etc.). Use it when
   running targeted type checks.
-- Install snippet-only dependencies with `pnpm --filter docs-code-snippets add <pkg>` so the
+- Install snippet-only dependencies with `vp add --filter docs-code-snippets <pkg>` so the
   regular docs app stays lean.
 
 ## Testing
 
-- Always run `CI=1 pnpm exec vitest run --config packages/@local/astro-twoslash-code/vitest.config.ts src/cli/snippets.render.test.ts`
-  and `CI=1 pnpm exec vp run -w docs:build:phase:snippets` after modifying snippet code or the pipeline.
+- Always run `CI=1 vp test run --config packages/@local/astro-twoslash-code/vite.config.ts src/cli/snippets.render.test.ts`
+  and `CI=1 vp run -w docs:build:phase:snippets` after modifying snippet code or the pipeline.
 - Nightly/docs CI reuses the cached artefacts and will fail if the snippets no longer compile.

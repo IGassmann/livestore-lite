@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test",
+    "test": "NODE_OPTIONS=--disable-warning=ExperimentalWarning vp exec playwright test",
     "test-app": "vp build test-app --configLoader runner && vp preview test-app --configLoader runner",
     "test-app:dev": "vp test-app --configLoader runner",
-    "test:profiler": "PERF_PROFILER=1 pnpm test"
+    "test:profiler": "PERF_PROFILER=1 vp run -w test:perf"
   },
   "dependencies": {
     "@livestore/adapter-web": "workspace:^",
