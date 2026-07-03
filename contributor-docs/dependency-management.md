@@ -113,7 +113,7 @@ After dependency updates, verify these meta-items:
 - [ ] `vp dlx expo install --check` passes for all Expo examples
 - [ ] Version constants updated appropriately
 - [ ] TypeScript build passes: `vp run -w ts:check`
-- [ ] Static checks pass: `vp run -w check:all` (run `vp run -w check:fix` if needed)
+- [ ] Static checks pass: `vp run -w check:all` (run `vp check --fix` if needed)
 
 ## Troubleshooting
 

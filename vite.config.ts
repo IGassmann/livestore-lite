@@ -497,10 +497,6 @@ export default defineConfig({
         ...noOutput,
         ...cacheable,
       },
-      'check:fix': {
-        command: 'vp check --fix',
-        cache: false,
-      },
       'check:lockfile': {
         command: 'vp install --frozen-lockfile --lockfile-only',
         cache: false,

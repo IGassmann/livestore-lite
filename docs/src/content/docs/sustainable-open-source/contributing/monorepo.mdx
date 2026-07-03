@@ -88,7 +88,7 @@ them.
 Run common workflows through Vite+ tasks from the repository root:
 
 - `vp run -w ts:check` — build/check TypeScript across the monorepo
-- `vp run -w check:all` / `vp run -w check:fix` — run or auto-fix static checks
+- `vp run -w check:all` / `vp check --fix` — run or auto-fix static checks
 - `vp run -w test:unit` / `vp run -w test:integration` / `vp run -w test:perf` — run test suites
 - `vp run -w docs:dev` / `vp run -w docs:build` — common docs workflows
 - `vp run -w examples:test` — example validation
@@ -109,7 +109,7 @@ the tracked `.vite-hooks/pre-commit` hook runs `vp staged`, which uses the
 `staged` configuration in `vite.config.ts` to check and fix staged files before
 commit. You should also run the following manually for a tighter feedback loop:
 
-- `vp run -w check:fix` — auto-fix static-check issues
+- `vp check --fix` — auto-fix static-check issues
 - `vp run -w ts:check` — ensure TypeScript passes
 - `vp run -w test:unit` (and relevant integration suites) — run tests
 

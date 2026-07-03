@@ -12,7 +12,7 @@ This repository uses Node 24 and Vite+ as the contributor-facing command surface
 
 Use `vp run -w <task>` for common workflows:
 
-- `vp run -w check:all` / `vp run -w check:fix` to run or auto-fix the static checks
+- `vp run -w check:all` / `vp check --fix` to run or auto-fix the static checks
 - `vp run -w test:unit`, `vp run -w test:integration`, or `vp run -w test:perf` to run the tests
   - Some tests can take a while to run.
 - `vp run -w ts:check` to check the TypeScript build
@@ -42,7 +42,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 ## Git
 
 - The default branch of this repository is `main`.
-- Before committing, run `vp run -w check:fix` to auto-fix most static-check errors. Make sure there are no static-check errors.
+- Before committing, run `vp check --fix` to auto-fix most static-check errors. Make sure there are no static-check errors.
 
 ### Branch Naming Conventions
 
@@ -54,7 +54,7 @@ Use GitHub issues or an issue checklist for non-trivial work.
 
 - Run the full test suite before pushing: `vp run -w test`
 - Ensure TypeScript compilation passes: `vp run -w ts:check`
-- Use `vp run -w check:fix` to automatically fix formatting issues
+- Use `vp check --fix` to automatically fix formatting issues
 
 ### Issues
 
