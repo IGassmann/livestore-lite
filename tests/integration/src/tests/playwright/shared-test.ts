@@ -11,6 +11,7 @@ import { Deferred, Duration, Effect, Fiber, Layer, Logger, Schema } from '@lives
 
 // Allow for slowest observed misc test (schema-migration performs 22 OPFS migrations).
 const runAndGetExitTimeoutMs = Duration.minutes(2)
+const runTestTimeoutMs = 150_000
 
 export const runTest =
   <E>(eff: Effect.Effect<void, E, Playwright.BrowserContext>) =>
@@ -21,6 +22,7 @@ export const runTest =
     const thread = `playwright-worker-${testInfo.workerIndex}`
     // @ts-expect-error TODO fix types
     globalThis.name = thread
+    testInfo.setTimeout(Math.max(testInfo.timeout, runTestTimeoutMs))
 
     return eff.pipe(
       Effect.withSpan(testInfo.title),
