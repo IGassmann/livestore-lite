@@ -57,7 +57,7 @@ const ColumnGridList = ({
       style={listStyle}
       onScroll={handleScroll}
     >
-      {(issue: (typeof tables.issue.Type)) => (
+      {(issue: typeof tables.issue.Type) => (
         <GridListItem
           textValue={issue.id.toString()}
           aria-label={`Issue ${issue.id}: ${issue.title}`}

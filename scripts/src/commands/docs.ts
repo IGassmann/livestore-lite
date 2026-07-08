@@ -380,13 +380,13 @@ const docsBuildCommand = Cli.Command.make(
     yield* cmd(['vp', 'exec', 'astro', 'sync'], { env: astroEnv }).pipe(
       Effect.provide(LivestoreWorkspace.toCwd('docs')),
     )
-    yield* cmd(['vp', 'exec', 'astro-check'], { env: astroEnv }).pipe(
-      Effect.provide(LivestoreWorkspace.toCwd('docs')),
-    )
+    yield* cmd(['vp', 'exec', 'astro-check'], { env: astroEnv }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
 
     // Local/CI prebuild uses Astro directly. The deploy step performs the
     // Netlify build (single build overall), which handles Edge bundling.
-    yield* cmd(['vp', 'exec', 'astro', 'build'], { env: astroEnv }).pipe(Effect.provide(LivestoreWorkspace.toCwd('docs')))
+    yield* cmd(['vp', 'exec', 'astro', 'build'], { env: astroEnv }).pipe(
+      Effect.provide(LivestoreWorkspace.toCwd('docs')),
+    )
     yield* cleanupChromiumChildren()
   }, Effect.scoped),
 )
