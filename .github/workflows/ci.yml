@@ -295,14 +295,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-vite-plus
+        id: setup_vite_plus
         with:
           playwright: 'true'
-      - name: Build docs snippets
-        run: vp run docs:build:phase:snippets
-      - name: Build docs diagrams
-        run: vp run docs:build:phase:diagrams
-      - name: Build Astro docs bundle
-        run: vp run docs:build:phase:astro
+          task-cache: 'true'
+      - name: Build docs with Vite Task
+        run: vp run ci:docs:astro
+      - name: Save Vite Task cache
+        if: ${{ success() }}
+        uses: actions/cache/save@v6
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ steps.setup_vite_plus.outputs.task-cache-primary-key }}
       - name: Collect docs build diagnostics on failure
         if: ${{ failure() }}
         run: vp run docs:build:diagnostics
