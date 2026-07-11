@@ -302,7 +302,17 @@ jobs:
           playwright: 'true'
           task-cache: 'true'
       - name: Build docs with Vite Task
-        run: vp run ci:docs:astro
+        run: |
+          env -i \
+            PATH="$PATH" \
+            HOME="$HOME" \
+            USER="$USER" \
+            SHELL="$SHELL" \
+            LANG="$LANG" \
+            CI="$CI" \
+            GITHUB_ACTIONS="$GITHUB_ACTIONS" \
+            GITHUB_BRANCH_NAME="$GITHUB_BRANCH_NAME" \
+            vp run ci:docs:astro
       - name: Save Vite Task cache
         if: ${{ success() }}
         uses: actions/cache/save@v6

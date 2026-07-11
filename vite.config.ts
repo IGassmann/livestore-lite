@@ -82,7 +82,7 @@ export default defineConfig({
         command:
           'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL bash scripts/bin/package-task docs:build:phase:astro',
         dependsOn: ['ci:docs:snippets', 'ci:docs:diagrams'],
-        env: ['!ACTIONS_*'],
+        env: ['GITHUB_ACTIONS', 'GITHUB_BRANCH_NAME'],
         input: [...docsTaskInputs, 'docs/node_modules/.astro-twoslash-code/**', 'docs/node_modules/.astro-tldraw/**'],
         output: ['docs/dist/**', 'docs/.astro/**', 'docs/src/content/docs/api/**', 'tmp/ci-docs/03-*.log'],
       },
