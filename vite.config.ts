@@ -11,11 +11,17 @@ export default defineConfig({
     tasks: {
       'ci:lint': {
         command: 'pnpm run lint:full',
+        // Dependency installation mutates executable shims in node_modules. Use
+        // repository files as the stable CI fingerprint instead of tracing those
+        // implementation details so a transported cache can be replayed.
+        input: ['**/*', '!**/node_modules/**', '!**/dist/**', '!**/*.tsbuildinfo', '!**/.vite/**', '!.git/**'],
         output: [],
       },
       'ci:type-check': {
         command: 'pnpm run ts:build',
-        input: [{ auto: true }, '!**/*.tsbuildinfo'],
+        // TypeScript reads and rewrites incremental build artifacts. They are an
+        // optimization, not source inputs, and are absent on a fresh CI runner.
+        input: ['**/*', '!**/node_modules/**', '!**/dist/**', '!**/*.tsbuildinfo', '!**/.vite/**', '!.git/**'],
         output: [],
       },
       'ci:test-unit': {
