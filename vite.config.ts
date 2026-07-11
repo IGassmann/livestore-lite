@@ -76,11 +76,12 @@ export default defineConfig({
         output: ['docs/node_modules/.astro-tldraw/**', 'tmp/ci-docs/02-diagrams.log'],
       },
       'ci:docs:astro': {
-        command: 'bash scripts/bin/package-task docs:build:phase:astro',
+        // Deployment is a separate uncached step. Remove its per-job OIDC
+        // credentials from the build process so they cannot affect or enter the
+        // cached result.
+        command:
+          'env -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u ACTIONS_ID_TOKEN_REQUEST_URL bash scripts/bin/package-task docs:build:phase:astro',
         dependsOn: ['ci:docs:snippets', 'ci:docs:diagrams'],
-        // Astro's Netlify adapter probes GitHub's per-job OIDC request token,
-        // which authorizes later deployments but does not affect build output.
-        untrackedEnv: ['ACTIONS_ID_TOKEN_REQUEST_TOKEN', 'ACTIONS_ID_TOKEN_REQUEST_URL'],
         input: [...docsTaskInputs, 'docs/node_modules/.astro-twoslash-code/**', 'docs/node_modules/.astro-tldraw/**'],
         output: ['docs/dist/**', 'docs/.astro/**', 'docs/src/content/docs/api/**', 'tmp/ci-docs/03-*.log'],
       },
