@@ -289,6 +289,8 @@ jobs:
         run: vp run examples:validate-links
   build-deploy-docs:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     defaults:
       run:
         shell: bash
