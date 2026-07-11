@@ -25,15 +25,6 @@ runs:
         node-version: '24'
         cache: true
 
-    # setup-vp uses the pinned package manager for installation but does not put
-    # its binary on PATH. Keep the repository's existing package scripts usable
-    # while Vite+ remains responsible for runtime and dependency installation.
-    - name: Expose pnpm for package scripts
-      uses: pnpm/action-setup@v4
-      with:
-        version: 11.3.0
-        run_install: false
-
     # Vite Task owns cache validity. GitHub only transports the cache directory
     # between equivalent jobs; source files and lockfiles belong in task fingerprints.
     - name: Restore Vite Task cache

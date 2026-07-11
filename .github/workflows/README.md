@@ -10,8 +10,9 @@ checks, TypeScript builds, unit tests, integration tests, Playwright tests,
 performance tests, docs/examples builds, and dev docs/examples deploys.
 
 Jobs install the repository's pinned Vite+ toolchain through
-`voidzero-dev/setup-vp`, which also caches pnpm's package data. CI gates run as
-named `vp run ci:*` tasks. The deterministic lint and type-check task caches are
+`voidzero-dev/setup-vp`, which also caches pnpm's package data. CI entrypoints
+and their underlying workspace scripts run through `vp run`. The deterministic
+lint and type-check task caches are
 transported between equivalent GitHub Actions jobs from
 `node_modules/.vite/task-cache`; Vite Task still fingerprints the actual files,
 arguments, and environment before replaying a result. Unit tests explicitly opt
